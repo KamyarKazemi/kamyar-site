@@ -1,0 +1,19 @@
+# dependencies and builds
+node_modules/
+dist/
+*.tsbuildinfo
+.vercel/
+
+# local working files: screenshots, scratch renders, the archived prototypes
+/shots/
+/work/
+/archive/
+
+# editors and systems
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+.env
+.env.*
