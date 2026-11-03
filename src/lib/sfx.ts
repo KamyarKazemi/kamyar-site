@@ -16,6 +16,8 @@ const bank = new Map<Sfx, AudioBuffer>();
 const last = new Map<Sfx, number>();
 let off = (() => { try { return localStorage.getItem(KEY) === 'off'; } catch { return false; } })();
 const listeners = new Set<(off: boolean) => void>();
+// set by the visitor's first press: before it, sounds are not even queued
+let woken = false;
 
 /** Gets the sounds ready. Safe to call more than once; the first tap or key anywhere lets them be heard. */
 export function primeSfx(): void {
@@ -27,13 +29,18 @@ export function primeSfx(): void {
   for (const name of ALL) {
     void fetch(`/sfx/${name}.mp3`).then((r) => r.arrayBuffer()).then((b) => ctx!.decodeAudioData(b)).then((buf) => bank.set(name, buf)).catch(() => {});
   }
-  const wake = () => { void ctx?.resume(); };
+  const wake = () => { woken = true; void ctx?.resume(); };
   for (const type of ['pointerdown', 'keydown', 'touchend'] as const) addEventListener(type, wake, { capture: true, passive: true });
 }
 
 /** Plays a sound: `level` 0–1, `rate` its speed (higher is higher pitched), nudged a little each time unless `exact`. */
 export function sfx(name: Sfx, level = 1, rate = 1, exact = false): void {
-  if (!ctx || !out || off || ctx.state !== 'running') return;
+  if (!ctx || !out || off) return;
+  // the first press wakes the sound, but waking takes a moment; a sound asked for in that moment waits for it instead of being lost
+  if (ctx.state !== 'running') {
+    if (woken) void ctx.resume().then(() => { if (ctx?.state === 'running') sfx(name, level, rate, exact); });
+    return;
+  }
   const buf = bank.get(name), now = ctx.currentTime;
   if (!buf || now - (last.get(name) ?? -1) < (GAP[name] ?? 0.02)) return;
   last.set(name, now);

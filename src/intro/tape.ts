@@ -56,6 +56,9 @@ export class Tape {
   stop(): void { gsap.ticker.remove(this.tick); }
 
   /** Puts the playhead at a moment and draws it at once (the tests use this; a background tab gets no frames). */
+  /** Draws the world again on the next frame, though nothing has moved (the screen changed size). */
+  redraw(): void { this.drawnRate = NaN; }
+
   seek(time: number): void { this.time = time; this.rate = 0; this.drawnRate = 0; this.tl.time(time); this.frame(time, 0); }
 
   play(on: boolean): void { this.playing = on; this.still = 0; if (on) this.started = true; }
