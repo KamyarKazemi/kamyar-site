@@ -31,7 +31,7 @@ export interface Copy {
   services: { note: string; title: string; items: { label: string; detail: string }[] };
   work: { note: string; title: string; items: WorkItem[] };
   terms: { note: string; title: string; items: { big: string; detail: string }[] };
-  contact: { label: string; title: string; note: string; email: string; instagram: string; github: string };
+  contact: { label: string; title: string; note: string; telegram: string; email: string; instagram: string; github: string };
   viewer: { close: string; next: string; prev: string };
   menu: { open: string; close: string; label: string };
   skip: string;
@@ -45,7 +45,10 @@ export interface Copy {
 export const links = {
   handle: '@kamyar__kazemi',
   instagram: 'https://instagram.com/kamyar__kazemi',
-  dm: 'https://ig.me/m/kamyar__kazemi',
+  // every "message me" button opens his Telegram
+  dm: 'https://t.me/Kazemi_Kamyar',
+  telegram: 'https://t.me/Kazemi_Kamyar',
+  telegramName: '@Kazemi_Kamyar',
   github: 'https://github.com/KamyarKazemi',
   githubName: 'KamyarKazemi',
   email: 'kamiyarkazemii@gmail.com',
@@ -119,7 +122,7 @@ export const copy: Record<Lang, Copy> = {
         { big: '۲ بار', detail: 'اصلاح، توی قیمت حساب شده' },
       ],
     },
-    contact: { label: 'تو کارتو بکن؛', title: 'بقیه‌ش با من', note: 'هر کدوم از اینا که دم دستته، به من می‌رسه.', email: 'ایمیل', instagram: 'اینستاگرام', github: 'گیت‌هاب' },
+    contact: { label: 'تو کارتو بکن؛', title: 'بقیه‌ش با من', note: 'هر کدوم از اینا که دم دستته، به من می‌رسه.', telegram: 'تلگرام', email: 'ایمیل', instagram: 'اینستاگرام', github: 'گیت‌هاب' },
     viewer: { close: 'بستن', next: 'بعدی', prev: 'قبلی' },
     menu: { open: 'باز کردن منو', close: 'بستن منو', label: 'بخش‌های سایت' },
     skip: 'رفتن به محتوا',
@@ -185,7 +188,7 @@ export const copy: Record<Lang, Copy> = {
         { big: '2 rounds', detail: 'Of revisions, included in the price' },
       ],
     },
-    contact: { label: 'You run the business.', title: 'I handle the rest', note: 'Any of these reaches me. Take whichever you already have open.', email: 'Email', instagram: 'Instagram', github: 'GitHub' },
+    contact: { label: 'You run the business.', title: 'I handle the rest', note: 'Any of these reaches me. Take whichever you already have open.', telegram: 'Telegram', email: 'Email', instagram: 'Instagram', github: 'GitHub' },
     viewer: { close: 'Close', next: 'Next', prev: 'Previous' },
     menu: { open: 'Open menu', close: 'Close menu', label: 'Site sections' },
     skip: 'Skip to content',

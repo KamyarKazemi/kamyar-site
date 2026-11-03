@@ -365,3 +365,6 @@ a { color: inherit; transition: color .15s; }
 
 /* a phone: the lifted header keeps its torn edge but drops the soft shadow filter, which repaints on every frame of scrolling */
 @media (max-width: 760px) { .head.is-lifted { filter: none; } }
+
+/* no blue flash over links and buttons when they are tapped on a phone; they have their own pressed look */
+html { -webkit-tap-highlight-color: transparent; }

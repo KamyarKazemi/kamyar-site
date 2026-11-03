@@ -101,6 +101,7 @@ export function Contact() {
       <a className="btn contact__btn rise" href={links.dm} target="_blank" rel="noreferrer">{t.cta}</a>
       <p className="contact__note rise" data-read><Read text={contact.note} /></p>
       <ul className="channels rise">
+        <li><span>{contact.telegram}</span><a className="typed" href={links.telegram} target="_blank" rel="noreferrer">{links.telegramName}</a></li>
         <li><span>{contact.email}</span><a className="typed" href={`mailto:${links.email}`}>{links.email}</a></li>
         <li><span>{contact.instagram}</span><a className="typed" href={links.instagram} target="_blank" rel="noreferrer">{links.handle}</a></li>
         <li><span>{contact.github}</span><a className="typed" href={links.github} target="_blank" rel="noreferrer">{links.githubName}</a></li>
