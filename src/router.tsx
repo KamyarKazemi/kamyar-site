@@ -15,6 +15,9 @@ export const router = createBrowserRouter([
     children: [
       { path: '/', element: <App /> },
       { path: '/en', element: <App /> },
+      // the live intro, before the site (a prototype on its own address for now)
+      { path: '/intro', element: <App /> },
+      { path: '/en/intro', element: <App /> },
       { path: '*', element: <NotFound /> },
     ],
   },

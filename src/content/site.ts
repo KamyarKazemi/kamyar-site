@@ -8,6 +8,8 @@ export interface WorkItem {
   kind: string;
   image: string;
   alt: string;
+  /** the real width / height of the work, so it opens at its true shape */
+  ratio: number;
   /** a short silent loop shown in the viewer */
   video?: string;
 }
@@ -16,9 +18,15 @@ export interface Copy {
   meta: { title: string; description: string };
   name: string;
   fullName: string;
+  /** in the order the sections come down the page, so the highlight walks through the header in step with the scroll */
   nav: { id: string; label: string }[];
   cta: string;
+  /** the header's call to action, shown next to the other language's */
+  reach: string;
+  /** typed over the name's second line when you point at it away from the top; in the second line's own language */
+  toTop: string;
   hero: { title: string; size: string; roles: string; primary: string };
+  /** body paragraphs may mark a key phrase with *asterisks*: the red pen underlines it as you read */
   about: { note: string; title: string; lead: string; body: string[]; stackNote: string; stack: string };
   services: { note: string; title: string; items: { label: string; detail: string }[] };
   work: { note: string; title: string; items: WorkItem[] };
@@ -30,6 +38,8 @@ export interface Copy {
   notFound: { title: string; text: string; back: string };
   otherLang: string;
   otherLangName: string;
+  /** the sound switch in the header: what it does when pressed */
+  sound: { off: string; on: string };
 }
 
 export const links = {
@@ -44,11 +54,11 @@ export const links = {
 export const stack = ['React', 'TypeScript', 'Tailwind CSS', 'JavaScript', 'GSAP', 'Git', 'Vite'];
 
 const media = {
-  intro: { id: 'intro', image: '/work/intro.webp', video: '/work/intro.mp4' },
-  cafe: { id: 'cafe', image: '/work/cafe.webp' },
-  niloofar: { id: 'niloofar', image: '/work/niloofar.webp' },
-  toolbox: { id: 'toolbox', image: '/work/toolbox.webp' },
-  okala: { id: 'okala', image: '/work/okala.webp' },
+  intro: { id: 'intro', image: '/work/intro.webp', video: '/work/intro.mp4', ratio: 9 / 16 },
+  cafe: { id: 'cafe', image: '/work/cafe.webp', ratio: 9 / 16 },
+  niloofar: { id: 'niloofar', image: '/work/niloofar.webp', ratio: 9 / 16 },
+  toolbox: { id: 'toolbox', image: '/work/toolbox.webp', ratio: 3 / 4 },
+  okala: { id: 'okala', image: '/work/okala.webp', ratio: 4 / 5 },
 };
 
 export const copy: Record<Lang, Copy> = {
@@ -57,21 +67,23 @@ export const copy: Record<Lang, Copy> = {
     name: 'کامیار',
     fullName: 'کامیار کاظمی',
     nav: [
-      { id: 'about', label: 'درباره' },
-      { id: 'services', label: 'چی می‌سازم' },
-      { id: 'work', label: 'نمونه کار' },
-      { id: 'terms', label: 'همکاری' },
+      { id: 'about', label: 'درباره من' },
+      { id: 'services', label: 'خدمات' },
+      { id: 'work', label: 'نمونه‌کارها' },
+      { id: 'terms', label: 'روند همکاری' },
       { id: 'contact', label: 'تماس' },
     ],
     cta: 'پیام بده',
+    reach: 'ارتباط با من',
+    toTop: '↑ BACK TO TOP',
     hero: { title: 'کامیار کاظمی', size: 'clamp(60px, 13.4vw, 196px)', roles: 'فرانت‌اند دولوپر، ادیتور و موشن دیزاینر', primary: 'نمونه کارها' },
     about: {
       note: 'ABOUT',
       title: 'درباره',
       lead: 'فرانت‌اند می‌سازم، و هر چیزی که دورش حرکت می‌کنه.',
       body: [
-        'یه طرف ری‌اکت، تایپ‌اسکریپت و وب؛ طرف دیگه ادیت و موشن گرافیک. همون دستی که ریلز رو کات می‌زنه، گرافیکش رو متحرک می‌کنه و سایتش رو می‌نویسه.',
-        'کارهای پروداکشنی که انجام دادم تحت NDA بوده، پس نشون دادنشون با من نیست. چیزی که می‌تونم نشون بدم اینه که چطور می‌سازم، و این سایت اولین نمونه‌شه.',
+        'یه طرف ری‌اکت، تایپ‌اسکریپت و وب؛ طرف دیگه ادیت و موشن گرافیک. *همون دستی که ریلز رو کات می‌زنه*، گرافیکش رو متحرک می‌کنه و سایتش رو می‌نویسه.',
+        'کارهای پروداکشنی که انجام دادم تحت NDA بوده، پس نشون دادنشون با من نیست. چیزی که می‌تونم نشون بدم اینه که چطور می‌سازم، و *این سایت اولین نمونه‌شه*.',
       ],
       stackNote: 'STACK',
       stack: 'چیزایی که واقعاً باهاشون کار می‌کنم، نه لیست هر چیزی که یه بار بازش کردم.',
@@ -114,6 +126,7 @@ export const copy: Record<Lang, Copy> = {
     notFound: { title: '۴۰۴', text: 'این صفحه پیدا نشد.', back: 'برگشت به صفحه‌ی اصلی' },
     otherLang: 'EN',
     otherLangName: 'English',
+    sound: { off: 'بی‌صدا کن', on: 'صدا رو روشن کن' },
   },
   en: {
     meta: { title: 'Kamyar Kazemi | Frontend, editing and motion', description: 'Kamyar Kazemi, frontend developer, editor and motion designer. Websites and apps, reels and motion graphics.' },
@@ -123,18 +136,20 @@ export const copy: Record<Lang, Copy> = {
       { id: 'about', label: 'About' },
       { id: 'services', label: 'Services' },
       { id: 'work', label: 'Work' },
-      { id: 'terms', label: 'How it works' },
+      { id: 'terms', label: 'Process' },
       { id: 'contact', label: 'Contact' },
     ],
     cta: 'Get in touch',
+    reach: 'Get in touch',
+    toTop: '↑ برگرد بالا',
     hero: { title: 'Kamyar Kazemi', size: 'clamp(44px, 10vw, 150px)', roles: 'Frontend developer, editor and motion designer', primary: 'See the work' },
     about: {
       note: 'ABOUT',
       title: 'About',
       lead: 'I build frontends, and everything that moves around them.',
       body: [
-        'React, TypeScript and the web on one side, editing and motion graphics on the other. The same hands cut the reel, animate the graphics and write the site.',
-        'The production work I have done was under NDA, so none of it is mine to show. What I can show is how I build, and this site is the first piece.',
+        'React, TypeScript and the web on one side, editing and motion graphics on the other. *The same hands cut the reel*, animate the graphics and write the site.',
+        'The production work I have done was under NDA, so none of it is mine to show. What I can show is how I build, and *this site is the first piece*.',
       ],
       stackNote: 'STACK',
       stack: 'What I actually reach for. Not a list of everything I have opened once.',
@@ -177,5 +192,6 @@ export const copy: Record<Lang, Copy> = {
     notFound: { title: '404', text: 'This page does not exist.', back: 'Back to the home page' },
     otherLang: 'فا',
     otherLangName: 'فارسی',
+    sound: { off: 'Turn the sound off', on: 'Turn the sound on' },
   },
 };

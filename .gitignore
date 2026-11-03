@@ -17,3 +17,6 @@ Thumbs.db
 *.log
 .env
 .env.*
+
+# the greeting's old asset folder, now public/live (a folder here would clash with the /intro page); delete it when it is free
+/public/intro/

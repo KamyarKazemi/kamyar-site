@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { copy, type Copy, type Lang } from '../content/site';
 import { gsap } from './gsap';
 import { jag, POSE, stepped } from './paper';
+import { sfx } from './sfx';
 
 interface LanguageValue { lang: Lang; t: Copy; toggle: () => void }
 
@@ -14,7 +15,7 @@ export const pathFor = (lang: Lang): string => (lang === 'en' ? '/en' : '/');
 export const langOf = (pathname: string): Lang => (/^\/en(\/|$)/.test(pathname) ? 'en' : 'fa');
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const { pathname, hash } = useLocation();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const lang = langOf(pathname);
   const turn = useRef<HTMLDivElement>(null);
@@ -31,7 +32,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   // a torn red sheet is pulled across the screen; the address changes while it covers the page, and the sheet carries on off the other side
   const toggle = useCallback(() => {
-    const go = () => navigate({ pathname: pathFor(lang === 'fa' ? 'en' : 'fa'), hash }, { preventScrollReset: true });
+    // the section you are on is read at the moment of the switch: smooth scrolling keeps it in the address without telling the router
+    const go = () => navigate({ pathname: pathFor(lang === 'fa' ? 'en' : 'fa'), hash: window.location.hash }, { preventScrollReset: true });
     const sheet = turn.current;
     if (!sheet || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { go(); return; }
     if (turning.current) return;
@@ -45,11 +47,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     };
     gsap.set(sheet, { visibility: 'visible' });
     draw();
+    sfx('turn', 0.7);
     gsap.timeline({ onComplete: () => { gsap.set(sheet, { visibility: 'hidden' }); turning.current = false; } })
       .to(s, { lead: 106, duration: POSES * POSE, ease: stepped('power2.inOut', POSES), onUpdate: draw })
       .call(go)
       .to(s, { trail: 106, duration: POSES * POSE, ease: stepped('power2.inOut', POSES), onUpdate: draw }, `+=${POSE}`);
-  }, [lang, hash, navigate]);
+  }, [lang, navigate]);
 
   const value = useMemo(() => ({ lang, t, toggle }), [lang, t, toggle]);
   return <Language value={value}>{children}<div className="turn" ref={turn} aria-hidden="true" /></Language>;

@@ -1,4 +1,5 @@
 import { links, stack } from '../content/site';
+import { Read } from './Read';
 import { useLanguage } from '../lib/language';
 import { StickerTitle } from './StickerTitle';
 
@@ -36,17 +37,20 @@ export function About() {
   const { t } = useLanguage();
   return (
     <section className="sec about" id="about">
-      <SectionHead note={t.about.note} title={t.about.title} />
-      <div className="about__grid">
-        <div>
-          <p className="about__lead rise">{t.about.lead}</p>
-          {t.about.body.map((p) => <p className="about__body rise" key={p}>{p}</p>)}
+      {/* laid out for reading: the title and the stack stay in the margin while the text runs in one column at a comfortable measure */}
+      <div className="about__page">
+        <div className="about__side">
+          <SectionHead note={t.about.note} title={t.about.title} />
+          <aside className="about__stack rise">
+            <p className="note">{t.about.stackNote}</p>
+            <p>{t.about.stack}</p>
+            <ul>{stack.map((s) => <li key={s}>{s}</li>)}</ul>
+          </aside>
         </div>
-        <aside className="about__stack rise">
-          <p className="note">{t.about.stackNote}</p>
-          <p>{t.about.stack}</p>
-          <ul>{stack.map((s) => <li key={s}>{s}</li>)}</ul>
-        </aside>
+        <div className="about__text">
+          <p className="about__lead rise" data-read><Read text={t.about.lead} /></p>
+          {t.about.body.map((p) => <p className="about__body rise" data-read key={p}><Read text={p} /></p>)}
+        </div>
       </div>
     </section>
   );
@@ -55,13 +59,13 @@ export function About() {
 export function Services() {
   const { t } = useLanguage();
   return (
-    <section className="sec sec--floor" id="services">
+    <section className="sec sec--floor services" id="services">
       <SectionHead note={t.services.note} title={t.services.title} />
       <ul className="list">
         {t.services.items.map((s) => (
-          <li className="list__row rise" key={s.label}>
-            <h3>{s.label}</h3>
-            <p>{s.detail}</p>
+          <li className="list__row" key={s.label}>
+            <h3 data-read><Read text={s.label} /></h3>
+            <p data-read><Read text={s.detail} /></p>
           </li>
         ))}
       </ul>
@@ -77,8 +81,8 @@ export function Terms() {
       <ul className="terms">
         {t.terms.items.map((item) => (
           <li className="rise" key={item.big}>
-            <strong>{item.big}</strong>
-            <p>{item.detail}</p>
+            <strong data-read><Read text={item.big} /></strong>
+            <p data-read><Read text={item.detail} /></p>
           </li>
         ))}
       </ul>
@@ -95,7 +99,7 @@ export function Contact() {
       <StickerTitle size="clamp(60px, 12vw, 180px)">{contact.title}</StickerTitle>
       <svg className="contact__line rise" viewBox="0 0 600 24" fill="none" aria-hidden="true"><path d="M6 16 C160 4 430 22 594 8" stroke="#ce261e" strokeWidth="8" strokeLinecap="round" /></svg>
       <a className="btn contact__btn rise" href={links.dm} target="_blank" rel="noreferrer">{t.cta}</a>
-      <p className="contact__note rise">{contact.note}</p>
+      <p className="contact__note rise" data-read><Read text={contact.note} /></p>
       <ul className="channels rise">
         <li><span>{contact.email}</span><a className="typed" href={`mailto:${links.email}`}>{links.email}</a></li>
         <li><span>{contact.instagram}</span><a className="typed" href={links.instagram} target="_blank" rel="noreferrer">{links.handle}</a></li>

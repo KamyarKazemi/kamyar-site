@@ -8,8 +8,6 @@ interface Props {
   className?: string;
 }
 
-const SCRAPS = 7;
-
 /**
  * The reel's solid title in real, selectable text: one element carries the word, the others are its extrusion, edge, band, line and hatch.
  * Over it sits the red strip that gets torn off (timelines/tear.ts). The strip stays hidden unless motion is allowed, so the title is never missing.
@@ -25,7 +23,6 @@ export function StickerTitle({ children, as: Tag = 'h2', size, className = '' }:
         <i className="tear__core" />
         <i className="tear__strip" />
         <i className="tear__flap" />
-        {Array.from({ length: SCRAPS }, (_, i) => <i className="scrap" key={i} />)}
       </span>
     </Tag>
   );

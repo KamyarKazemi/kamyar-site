@@ -1,0 +1,350 @@
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { intro, type Groan, type Reaction } from '../content/intro';
+import { gsap } from '../lib/gsap';
+import { useNavigate } from 'react-router-dom';
+import type { Lang } from '../content/site';
+import { pathFor, useLanguage } from '../lib/language';
+import { LanguageGate } from './LanguageGate';
+import { jag, POSE, stepped } from '../lib/paper';
+import { BOARD, boardPaths, buildScene, DOT, drift, EYE, layout, lens, place, segment, type Camera, type Layout } from './scene';
+import { TapeSound } from './sound';
+import { Tape, type TapeEvent } from './tape';
+import './intro.css';
+import { sfx, sfxOff } from '../lib/sfx';
+
+const PERSPECTIVE = 1100;
+// the hand-off: the red holds this long, then the hole opens over this many paper poses
+const HOLD = 0.35, OPEN = 14;
+const INK = '#181614', RED = '#ce261e', PAPER = '#f6f3ec', SIDE = '#2b2420';
+
+// the sticker title as a solid, one svg, as in the reel: ink extrusion, black edge, red band, black line, paper face, hatching
+function Solid({ text, size, rtl }: { text: string; size: number; rtl: boolean }) {
+  const id = useMemo(() => `li-hat-${Math.random().toString(36).slice(2, 8)}`, []);
+  const y = -size * 0.3;
+  const T = (props: Record<string, unknown>, dx = 0, dy = 0) => (
+    <text x={dx} y={y + dy} textAnchor="middle" direction={rtl ? 'rtl' : 'ltr'} style={{ fontFamily: 'Lalezar', fontSize: size, paintOrder: 'stroke', strokeLinejoin: 'round' }} {...props}>{text}</text>
+  );
+  return (
+    <svg className="li-svg" width="2" height="2" aria-hidden="true">
+      <defs><pattern id={id} width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-38)"><rect width="1.8" height="9" fill={INK} fillOpacity=".6" /></pattern></defs>
+      {Array.from({ length: 7 }, (_, k) => 7 - k).map((k) => <g key={k}>{T({ fill: SIDE, stroke: SIDE, strokeWidth: size * 0.227 }, k * size * 0.009, k * size * 0.016)}</g>)}
+      {T({ fill: 'none', stroke: INK, strokeWidth: size * 0.227 })}
+      {T({ fill: 'none', stroke: RED, strokeWidth: size * 0.164 })}
+      {T({ fill: 'none', stroke: INK, strokeWidth: size * 0.041 })}
+      {T({ fill: PAPER })}
+      {T({ fill: `url(#${id})` })}
+    </svg>
+  );
+}
+
+// plain heavy type with a thin ink shadow: the second voice
+function Plain({ text, size, rtl }: { text: string; size: number; rtl: boolean }) {
+  return (
+    <svg className="li-svg" width="2" height="2" aria-hidden="true">
+      {[true, false].map((shadow) => (
+        <text key={String(shadow)} x={shadow ? size * 0.03 : 0} y={-size * 0.3 + (shadow ? size * 0.05 : 0)} textAnchor="middle" direction={rtl ? 'rtl' : 'ltr'} fill={shadow ? SIDE : INK} style={{ fontFamily: 'Vazirmatn Variable', fontWeight: 900, fontSize: size }}>{text}</text>
+      ))}
+    </svg>
+  );
+}
+
+/**
+ * A thing standing on the floor at a place; it lies flat until the timeline raises it. The rising part needs a real box the size of
+ * what it holds: Chrome draws a 3D layer only inside its own bounds, so an empty box with its picture overflowing it shows nothing.
+ */
+function Stand({ at, rise, box: [w, h], keep, shade, children }: { at: Parameters<typeof place>[0]; rise: string; box: [number, number]; keep?: boolean; shade?: number; children: ReactNode }) {
+  return (
+    <div className="li-at" data-z={at.z} data-keep={keep ? '' : undefined} style={{ transform: place(at) }}>
+      {/* its shadow on the floor, spreading as it stands up */}
+      {shade && <i className="li-shade-at" style={{ top: -(at.y ?? 0) }}><i className="li-shade" style={{ width: shade, height: shade * 0.34, left: -shade / 2, top: -shade * 0.17 }} /></i>}
+      <div className="li-rise" data-rise={rise} style={{ left: -w / 2, top: -h, width: w, height: h }}><div className="li-anchor" style={{ left: w / 2, top: h }}>{children}</div></div>
+    </div>
+  );
+}
+
+/** The giant timeline board standing on two legs; its face, ticks, playhead and sweat are redrawn from the timeline. */
+function Board({ refs }: { refs: RefObject<Record<string, SVGElement | null>> }) {
+  const set = (k: string) => (el: SVGElement | null) => { refs.current[k] = el; };
+  return (
+    <svg className="li-board" width={BOARD.w} height={BOARD.h} viewBox={`0 0 ${BOARD.w} ${BOARD.h}`} style={{ left: -BOARD.w / 2, top: -BOARD.h }} aria-hidden="true">
+      {BOARD.legs.map((x) => <path key={x} d={`M${x} ${BOARD.bottom} L${x - 8} ${BOARD.h} M${x} ${BOARD.bottom} L${x + 8} ${BOARD.h}`} stroke={INK} strokeWidth="7" strokeLinecap="round" />)}
+      <path ref={set('face')} fill={PAPER} stroke={INK} strokeWidth="6" strokeLinejoin="round" />
+      <path ref={set('ticks')} fill="none" stroke={INK} strokeWidth="3" />
+      <text x="70" y="105" style={{ font: "700 30px 'Courier Prime'" }} fill={RED}>◀◀</text>
+      <text x={BOARD.w - 70} y="105" textAnchor="end" style={{ font: "700 30px 'Courier Prime'" }} fill={RED}>▶▶</text>
+      <path ref={set('head')} stroke={RED} strokeWidth="7" strokeLinecap="round" />
+      <path ref={set('knob')} fill={RED} />
+      <circle ref={set('drop')} r="11" fill={INK} />
+    </svg>
+  );
+}
+
+const clock = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${(s % 60).toFixed(1).padStart(4, '0')}`;
+
+/**
+ * The live intro, in front of the site. A tape you put in: it plays the reel's paper world live, and you can pause it, hold rewind or
+ * forward, drag it back and forth by the strip, the film or the wheel. He notices what you do with it and says something (typed for
+ * now; his recordings go in later). At the end the camera dives into a red dot, the red is the page-turn sheet, and the site is under it.
+ */
+export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => void; onDone: () => void }) {
+  const { lang } = useLanguage();
+  const c = intro[lang], rtl = lang === 'fa';
+  const [L] = useState<Layout>(() => layout(window.innerHeight > window.innerWidth));
+  const root = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const camEl = useRef<HTMLDivElement>(null);
+  const hud = useRef<HTMLSpanElement>(null);
+  const deck = useRef<HTMLDivElement>(null);
+  const tape = useRef<Tape | null>(null);
+  const sound = useRef<TapeSound | null>(null);
+  const [phase, setPhase] = useState<'ready' | 'running' | 'leaving'>('ready');
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [said, setSaid] = useState<{ key: Reaction; n: number } | null>(null);
+  const [groan, setGroan] = useState<Groan | null>(null);
+  const board = useRef<Record<string, SVGElement | null>>({});
+
+  // the world is drawn at the scale that covers the screen
+  useLayoutEffect(() => {
+    const fit = () => {
+      const s = Math.max(innerWidth / L.width, innerHeight / L.height);
+      stage.current?.style.setProperty('transform', `translate(-50%, -50%) scale(${s})`);
+    };
+    fit();
+    addEventListener('resize', fit);
+    return () => removeEventListener('resize', fit);
+  }, [L]);
+
+  // the film and the tape it runs on
+  useEffect(() => {
+    const el = root.current!;
+    const cam: Camera = { x: 0, y: EYE, z: 0, rx: 0, ry: 0 };
+    const drawBoard = (sag: number, head: number, drop: number) => {
+      const b = board.current, p = boardPaths(sag, head, drop);
+      b.face?.setAttribute('d', p.face);
+      b.ticks?.setAttribute('d', p.ticks);
+      b.head?.setAttribute('d', p.head);
+      b.knob?.setAttribute('d', p.knob);
+      if (b.drop) { b.drop.setAttribute('cx', String(p.drop.x)); b.drop.setAttribute('cy', p.drop.y.toFixed(1)); b.drop.setAttribute('opacity', String(p.drop.o)); }
+    };
+    const { tl, cues } = buildScene(el, L, cam, drawBoard);
+    const stations = [...el.querySelectorAll<HTMLElement>('.li-at')].map((at) => ({ at, z: Number(at.dataset.z), near: at.dataset.near ? Number(at.dataset.near) : null, keep: 'keep' in at.dataset, face: at.querySelector<HTMLElement>('.li-anchor') }));
+    const frame = (time: number, rate: number) => {
+      if (!camEl.current) return;
+      // the hand holding the camera never stops; off normal speed it shakes, more the faster the tape runs
+      const off = Math.abs(rate - 1), shake = off > 0.3 && Math.abs(rate) > 0.05 ? Math.min(7, off * 2) : 0, h = drift(time, shake);
+      camEl.current.style.transform = lens({ x: cam.x + h.x, y: cam.y + h.y, z: cam.z, rx: cam.rx + h.rx, ry: cam.ry + h.ry }, PERSPECTIVE);
+      // only what is near the camera is drawn: Chrome drops 3D layers past its budget, and far things are lost in the distance anyway.
+      // On a phone the camera walks right past earlier pieces, so those are put away before they fill the lens; the dots are what it
+      // dives into at the end, so they stay
+      // Anything the camera is about to pass through fades away over its last few hundred pixels instead of filling the lens; the
+      // doormat lies flat, so it can be close before it is in the way; the dots are what it dives into at the end, so they stay
+      for (const s of stations) {
+        const d = cam.z - s.z, near = s.near ?? (s.keep ? -120 : L.portrait ? L.dist * 0.6 : 60);
+        const shown = d > near && d < 4600;
+        s.at.style.visibility = shown ? 'visible' : 'hidden';
+        if (s.face && !s.keep) s.face.style.opacity = shown ? String(Math.min(1, Math.max(0, (d - near) / 640))) : '0';
+      }
+      // spooling: tracking bands run over the picture and a stamp says which way and how fast
+      const spool = rate < -0.4 ? 'rew' : rate > 1.4 ? 'ff' : '';
+      if (el.dataset.spool !== spool) el.dataset.spool = spool;
+      if (spool && fx.current) fx.current.textContent = `${spool === 'rew' ? '◀◀' : '▶▶'} ×${Math.abs(rate).toFixed(1)}`;
+      el.classList.toggle('is-tired', (tape.current?.tired ?? 0) > 0);
+      deck.current?.style.setProperty('--p', (time / tl.duration()).toFixed(4));
+      if (hud.current) {
+        const mode = rate < -0.5 ? `◀◀ REW ×${Math.abs(rate).toFixed(1)}` : rate > 1.5 ? `▶▶ FF ×${rate.toFixed(1)}` : Math.abs(rate) < 0.05 ? '❚❚ PAUSE' : '▶ PLAY';
+        hud.current.textContent = `${mode}   ${clock(time)} / ${clock(tl.duration())}`;
+      }
+    };
+    const event = (e: TapeEvent) => {
+      if (e === 'end') { setPhase('leaving'); return; }
+      if (e === 'tiredBack' || e === 'tiredForward') { setGroan(e); return; }
+      setSaid((s) => ({ key: e, n: (s?.n ?? 0) + 1 }));
+    };
+    tape.current = new Tape(tl, cues, frame, event, null);
+    // the tests drive the tape by hand
+    if (import.meta.env.DEV) Object.assign(window, { __tape: tape.current });
+    return () => { tape.current?.stop(); tape.current = null; tl.kill(); sound.current?.close(); sound.current = null; };
+  }, [L]);
+
+  // his line, typed onto a torn label, then taken away
+  const line = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!said || !line.current) return;
+    const text = Array.from(c.reactions[said.key]), s = { n: 0 }, el = line.current;
+    const tw = gsap.to(s, { n: text.length, duration: text.length * 0.035, ease: `steps(${text.length})`, onUpdate: () => { el.textContent = text.slice(0, Math.round(s.n)).join(''); } });
+    const off = setTimeout(() => setSaid(null), 3000);
+    return () => { tw.kill(); clearTimeout(off); };
+  }, [said, c]);
+
+  const groanLine = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!groan || !groanLine.current) return;
+    const text = Array.from(c.groans[groan]), s = { n: 0 }, el = groanLine.current;
+    sound.current?.play('type', false, 1, 0.6);
+    const tw = gsap.to(s, { n: text.length, duration: text.length * 0.04, ease: `steps(${text.length})`, onUpdate: () => { el.textContent = text.slice(0, Math.round(s.n)).join(''); } });
+    const off = setTimeout(() => setGroan(null), 3400);
+    return () => { tw.kill(); clearTimeout(off); };
+  }, [groan, c]);
+
+  // the hand-off. The camera has dived into the red dot, so the screen is all red; the site is set up under it. After a breath a
+  // torn hole opens in the middle of the red and widens past the edges — the camera pulling back out of the dot — while the page
+  // underneath settles from a little too close, and only then does the site bring its own parts in, one after another
+  useEffect(() => {
+    if (phase !== 'leaving') return;
+    const red = root.current!.querySelector<HTMLElement>('.li-red')!, sheet = red.firstElementChild as HTMLElement;
+    tape.current?.stop();
+    sound.current?.spool(1);
+    sound.current?.fade();
+    gsap.set(red, { autoAlpha: 1 });
+    root.current!.classList.add('is-leaving');
+    onReveal(HOLD);
+    const W = innerWidth, H = innerHeight, cx = W / 2, cy = H * 0.45;
+    const far = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) * 1.12, edge = jag(23, 56, 1), s = { r: 0, turn: 0 };
+    const draw = () => {
+      const hole = edge.map((j, i) => {
+        const a = (i / edge.length) * Math.PI * 2 + s.turn, r = s.r * (1 + j * 0.045);
+        return `${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r).toFixed(1)}`;
+      });
+      sheet.style.clipPath = `path(evenodd, "M0 0H${W}V${H}H0Z M${hole.join(' L')}Z")`;
+    };
+    draw();
+    const tl = gsap.timeline({ onComplete: onDone })
+      .call(() => sound.current?.play('whoosh', true, 0.8, 0.55), [], HOLD)
+      .call(() => sfx('rip', 0.6, 0.85), [], HOLD)
+      .to(s, { r: far, turn: 0.35, duration: OPEN * POSE, ease: stepped('power2.inOut', OPEN), onUpdate: draw }, HOLD);
+    return () => { tl.kill(); };
+  }, [phase, onReveal, onDone]);
+
+  // the language is chosen on the gate; the tap that chooses it is also the one that lets the browser play sound
+  const navigate = useNavigate();
+  const chosen = (pick: Lang) => {
+    try { sound.current = new TapeSound(); void sound.current.resume(); } catch { sound.current = null; }
+    // the tape was made before the tap that allows sound; it gets its speaker now
+    if (tape.current) tape.current.sound = sound.current;
+    if (sfxOff()) { sound.current?.muted(true); setMuted(true); }
+    if (pick !== lang) navigate(pathFor(pick), { replace: true });
+  };
+  const start = () => {
+    tape.current?.play(true);
+    setPlaying(true);
+    setPhase('running');
+  };
+  const toggle = () => { const on = !playing; tape.current?.play(on); setPlaying(on); };
+  const skip = () => setPhase('leaving');
+  const mute = () => { const on = !muted; sound.current?.muted(on); setMuted(on); };
+
+  // keys: space plays and pauses, the arrows are rewind and forward while held, Escape skips
+  useEffect(() => {
+    if (phase !== 'running') return;
+    const down = (e: KeyboardEvent) => {
+      if (e.key === ' ') { e.preventDefault(); if (!e.repeat) toggle(); }
+      if (e.key === 'ArrowLeft') tape.current?.hold(-1);
+      if (e.key === 'ArrowRight') tape.current?.hold(1);
+      if (e.key === 'Escape') skip();
+    };
+    const up = (e: KeyboardEvent) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') tape.current?.hold(0); };
+    addEventListener('keydown', down);
+    addEventListener('keyup', up);
+    return () => { removeEventListener('keydown', down); removeEventListener('keyup', up); };
+  });
+
+  // dragging the film itself: to the right is forward, in either language, like every player
+  const drag = useRef<{ x: number } | null>(null);
+  const grab = (e: ReactPointerEvent) => { if (phase !== 'running') return; drag.current = { x: e.clientX }; e.currentTarget.setPointerCapture(e.pointerId); };
+  const pull = (e: ReactPointerEvent) => {
+    if (!drag.current) return;
+    tape.current?.scrubBy(((e.clientX - drag.current.x) / innerWidth) * 6);
+    drag.current.x = e.clientX;
+  };
+  const drop = () => { drag.current = null; };
+
+  // the strip: a ruler with the red playhead, dragged to any moment
+  const seek = (e: ReactPointerEvent) => {
+    if (!tape.current || (e.type === 'pointermove' && !e.buttons)) return;
+    const r = e.currentTarget.getBoundingClientRect(), f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    tape.current.scrubTo(f * tape.current.duration);
+  };
+  const press = (dir: -1 | 1) => ({
+    onPointerDown: (e: ReactPointerEvent) => { e.currentTarget.setPointerCapture(e.pointerId); tape.current?.hold(dir); },
+    onPointerUp: () => tape.current?.hold(0),
+    onPointerCancel: () => tape.current?.hold(0),
+  });
+
+  const fx = useRef<HTMLSpanElement>(null);
+  const tiles = useMemo(() => {
+    const out: { x: number; z: number }[] = [];
+    for (let x = -2400; x < 2400; x += 1600) for (let z = -7200; z < 1600; z += 1600) out.push({ x, z });
+    return out;
+  }, []);
+
+  return (
+    <div className={`li is-${phase}`} ref={root} lang={lang} dir={rtl ? 'rtl' : 'ltr'} role="region" aria-label={c.hi}
+      onWheel={(e) => { e.stopPropagation(); if (phase === 'running') tape.current?.scrubBy(e.deltaY * 0.004); }}>
+      <div className="li-view" onPointerDown={grab} onPointerMove={pull} onPointerUp={drop} onPointerCancel={drop}>
+        <div className="li-stage" ref={stage} style={{ width: L.width, height: L.height, perspective: PERSPECTIVE }}>
+          <div className="li-cam" ref={camEl}>
+            {tiles.map((t) => <i key={`${t.x},${t.z}`} className="li-floor" style={{ transform: `translate3d(${t.x}px, 0, ${t.z}px) rotateX(90deg)` }} />)}
+            <div className="li-route">
+              {L.route.slice(1).map((p, i) => { const s = segment(p, L.route[i]!); return <i key={i} style={{ height: s.length, transform: s.transform }}><b /></i>; })}
+            </div>
+
+            {/* 1 — سلام! */}
+            <Stand at={L.hi} rise="hi" box={[1500, 440]} shade={900}><Solid text={c.hi} size={L.portrait ? 300 : 280} rtl={rtl} /></Stand>
+            <Stand at={L.me} rise="me" box={[405, 651]} shade={360}><img className="li-print" src="/live/me.webp" alt="" style={{ width: 405, left: -202, top: -651 }} /></Stand>
+            <Stand at={L.hiNote} rise="hiNote" box={[600, 40]}><span className="li-note">{c.hiNote}</span></Stand>
+
+            {/* 2 — خوش اومدی: a paper doormat lying on the floor */}
+            <div className="li-at" data-z={L.mat.z} data-near="700" style={{ transform: place(L.mat, ' rotateX(90deg)') }}>
+              <div className="li-mat" lang={lang}><span>{c.welcome}</span></div>
+            </div>
+            <Stand at={L.matNote} rise="matNote" box={[600, 40]}><span className="li-note">{c.welcomeNote}</span></Stand>
+
+            {/* 3 — زنده‌ست */}
+            <Stand at={L.liveNote} rise="liveNote" box={[700, 40]}><span className="li-note">{c.liveNote}</span></Stand>
+            <Stand at={L.live} rise="live" box={[1400, 420]} shade={800}><Solid text={c.live} size={L.portrait ? 270 : 250} rtl={rtl} /></Stand>
+            <Stand at={L.rec} rise="rec" box={[220, 90]}><span className="li-rec"><i />REC</span></Stand>
+
+            {/* 4 and 5 — the timeline is yours; it gets tired */}
+            <Stand at={L.board} rise="board" box={[BOARD.w, BOARD.h]} shade={1300}><Board refs={board} /></Stand>
+            <Stand at={L.yours} rise="yours" box={[1400, 160]}><Plain text={c.yours} size={L.portrait ? 120 : 92} rtl={rtl} /></Stand>
+            <Stand at={L.yoursNote} rise="yoursNote" box={[700, 40]}><span className="li-note">{c.yoursNote}</span></Stand>
+            <Stand at={L.tires} rise="tires" box={[1100, 150]}><Plain text={c.tires} size={L.portrait ? 110 : 84} rtl={rtl} /></Stand>
+            <Stand at={L.tiresNote} rise="tiresNote" box={[700, 40]}><span className="li-note">{c.tiresNote}</span></Stand>
+
+            {/* 6 — بفرما تو, and the dot the camera walks into */}
+            <Stand at={L.come} rise="come" box={[1300, 420]} shade={760}><Solid text={c.come} size={L.portrait ? 290 : 270} rtl={rtl} /></Stand>
+            {L.dots.map((d, i) => <Stand key={i} at={d} rise={`dot${i}`} box={[DOT * 2, DOT * 2]} keep><i className="li-dot" style={{ width: DOT * 2, height: DOT * 2, left: -DOT, top: -DOT * 2 }} /></Stand>)}
+            <Stand at={L.comeNote} rise="comeNote" box={[600, 40]}><span className="li-note">{c.comeNote}</span></Stand>
+          </div>
+        </div>
+      </div>
+      <i className="li-grain" aria-hidden="true" />
+      <span className="li-fx" aria-hidden="true"><i /><i /><i /><span className="li-fx__stamp" ref={fx} /></span>
+      <i className="li-frame" aria-hidden="true" />
+
+      <p className={`li-say${said ? ' is-on' : ''}`} aria-live="polite">
+        <span className="li-say__line" ref={line} />
+        {said && <span className="li-say__tag">VOICE · {said.key}</span>}
+      </p>
+
+      <span className="li-hud" ref={hud} aria-hidden="true" />
+      <button type="button" className="li-skip" onClick={skip}>{c.skip} {rtl ? '←' : '→'}</button>
+
+      <div className="li-deck" ref={deck}>
+        <button type="button" className="li-key" aria-label={c.rewind} {...press(-1)}>◀◀</button>
+        <button type="button" className="li-key li-key--play" aria-label={playing ? c.pause : c.resume} onClick={toggle}>{playing ? '❚❚' : '▶'}</button>
+        <button type="button" className="li-key" aria-label={c.forward} {...press(1)}>▶▶</button>
+        <div className="li-strip" role="slider" aria-label={c.scrub} aria-valuemin={0} aria-valuemax={100} tabIndex={0}
+          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); seek(e); }} onPointerMove={seek}>
+          <i className="li-strip__head" />
+          <span className={`li-groan${groan ? ' is-on' : ''}`} aria-live="polite"><span ref={groanLine} /></span>
+        </div>
+        <button type="button" className="li-key li-key--sound" aria-pressed={muted} onClick={mute}>{muted ? 'SOUND OFF' : 'SOUND ON'}</button>
+      </div>
+
+      {phase === 'ready' && <LanguageGate onPress={chosen} onGone={start} />}
+      <div className="li-red" aria-hidden="true"><i className="li-red__sheet" /></div>
+    </div>
+  );
+}

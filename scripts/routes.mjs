@@ -4,7 +4,9 @@ import { pathToFileURL } from 'node:url';
 const { launch } = await import(pathToFileURL('C:/mydesk/Desktop/video-pipeline/video-projects/okala/scripts/_pw.mjs').href);
 
 const base = process.argv[2] ?? 'http://localhost:5199';
-const b = await launch(), p = await b.newPage({ viewport: { width: 1440, height: 900 } }), errors = [], ok = (n, v) => console.log(v ? 'pass' : 'FAIL', n);
+const b = await launch(), ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.addInitScript(() => { try { localStorage.setItem('kk-voice-note', '1'); localStorage.setItem('kk-seen', '1'); } catch {} });
+const p = await ctx.newPage(), errors = [], ok = (n, v) => console.log(v ? 'pass' : 'FAIL', n);
 p.on('pageerror', (e) => errors.push(e.message));
 const state = () => p.evaluate(() => ({ path: location.pathname, hash: location.hash, lang: document.documentElement.lang, dir: document.documentElement.dir, h1: document.querySelector('h1 .st__face')?.textContent }));
 

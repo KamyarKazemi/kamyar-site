@@ -1,6 +1,6 @@
 // Everything the paper motion needs, generated from the real work so it stays deterministic:
 //   work/<id>-ink.webp  each print as a black and red halftone on paper
-//   tex/bleed.webp      eight stop-motion frames of ink spreading, used as a mask
+//   tex/bleed-blob.webp one ragged ink blot, grown as a mask to soak colour through a print
 //   tex/edge.svg        a seamless torn edge
 //   cursor/scissors.svg the cursor over the prints
 //   node scripts/make-paper-assets.mjs
@@ -28,23 +28,16 @@ for (const id of ['intro', 'cafe', 'niloofar', 'toolbox', 'okala']) {
   console.log(id, Math.round(f.size / 1024) + 'KB');
 }
 
-// ── the bleed: a blotchy field thresholded at eight levels, so ink spreads in eight poses from the middle out ──
-const FW = 240, FH = 427, FRAMES = 8;
-const noise = async (sigma, seedShift) => sharp({ create: { width: FW + seedShift, height: FH, channels: 3, background: '#808080', noise: { type: 'gaussian', mean: 128, sigma: 90 } } }).extract({ left: seedShift, top: 0, width: FW, height: FH }).blur(sigma).normalise().greyscale().extractChannel(0).raw().toBuffer();
-const [coarse, fine] = await Promise.all([noise(16, 3), noise(4, 11)]);
-const field = new Float32Array(FW * FH);
-for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) {
-  const i = y * FW + x, dx = (x / FW - 0.5) * 1.5, dy = (y / FH - 0.5) * 1.5;
-  field[i] = 0.5 * (coarse[i] ?? 0) / 255 + 0.2 * (fine[i] ?? 0) / 255 + 0.75 * Math.hypot(dx, dy);
+// ── the ink blot: one ragged, soft-edged blot; grown smoothly as a mask, colour seems to soak through the print ──
+const BN = 512, field = async (sigma, shift) => sharp({ create: { width: BN + shift, height: BN, channels: 3, background: '#808080', noise: { type: 'gaussian', mean: 128, sigma: 90 } } }).extract({ left: shift, top: 0, width: BN, height: BN }).blur(sigma).normalise().greyscale().extractChannel(0).raw().toBuffer();
+const [coarse, fine] = await Promise.all([field(10, 0), field(2.5, 7)]);
+const blot = Buffer.alloc(BN * BN * 4);
+for (let y = 0; y < BN; y++) for (let x = 0; x < BN; x++) {
+  const i = y * BN + x, d = Math.hypot(x / BN - 0.5, y / BN - 0.5) * 2, edge = 0.78 + 0.28 * ((coarse[i] ?? 0) / 255 - 0.5) + 0.1 * ((fine[i] ?? 0) / 255 - 0.5);
+  blot[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (edge - d) / 0.06)) * 255);
 }
-const sorted = Float32Array.from(field).sort(), level = (q) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] ?? 0;
-const sheet = Buffer.alloc(FW * FRAMES * FH * 4);
-for (let f = 0; f < FRAMES; f++) {
-  const th = f === 0 ? -1 : f === FRAMES - 1 ? 99 : level((f / (FRAMES - 1)) ** 1.25);
-  for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) sheet[(y * FW * FRAMES + f * FW + x) * 4 + 3] = (field[y * FW + x] ?? 0) < th ? 255 : 0;
-}
-const b = await sharp(sheet, { raw: { width: FW * FRAMES, height: FH, channels: 4 } }).webp({ lossless: true }).toFile('public/tex/bleed.webp');
-console.log('bleed', Math.round(b.size / 1024) + 'KB');
+const b = await sharp(blot, { raw: { width: BN, height: BN, channels: 4 } }).webp({ lossless: true }).toFile('public/tex/bleed-blob.webp');
+console.log('blot', Math.round(b.size / 1024) + 'KB');
 
 // ── the torn edge: filled below a jagged line that meets itself at both ends ──
 let s = 1693; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
