@@ -33,6 +33,7 @@ export function storyTimelines(): () => void {
 
   // loose sheets: what sits in each section lags behind fast scrolling and leans with it, then settles. Not the pieces that rise in
   // (they own their own y) and not the work's dialog, which covers the screen
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return () => mm.revert();
   const sheets = gsap.utils.toArray<HTMLElement>('main .sec > :not(.rise, dialog)');
   const lean = sheets.map((el, i) => ({ skew: gsap.quickTo(el, 'skewY', { duration: 0.5 + (i % 3) * 0.08, ease: 'power3.out' }), lag: gsap.quickTo(el, 'y', { duration: 0.55 + (i % 3) * 0.1, ease: 'power3.out' }) }));
   const feel = () => {

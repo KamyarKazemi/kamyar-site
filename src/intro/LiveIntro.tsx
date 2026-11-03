@@ -18,7 +18,7 @@ const HOLD = 0.35, OPEN = 14;
 const INK = '#181614', RED = '#ce261e', PAPER = '#f6f3ec', SIDE = '#2b2420';
 
 // the sticker title as a solid, one svg, as in the reel: ink extrusion, black edge, red band, black line, paper face, hatching
-function Solid({ text, size, rtl }: { text: string; size: number; rtl: boolean }) {
+function Solid({ text, size, rtl, depth = 7 }: { text: string; size: number; rtl: boolean; depth?: number }) {
   const id = useMemo(() => `li-hat-${Math.random().toString(36).slice(2, 8)}`, []);
   const y = -size * 0.3;
   const T = (props: Record<string, unknown>, dx = 0, dy = 0) => (
@@ -27,7 +27,7 @@ function Solid({ text, size, rtl }: { text: string; size: number; rtl: boolean }
   return (
     <svg className="li-svg" width="2" height="2" aria-hidden="true">
       <defs><pattern id={id} width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-38)"><rect width="1.8" height="9" fill={INK} fillOpacity=".6" /></pattern></defs>
-      {Array.from({ length: 7 }, (_, k) => 7 - k).map((k) => <g key={k}>{T({ fill: SIDE, stroke: SIDE, strokeWidth: size * 0.227 }, k * size * 0.009, k * size * 0.016)}</g>)}
+      {Array.from({ length: depth }, (_, k) => depth - k).map((k) => <g key={k}>{T({ fill: SIDE, stroke: SIDE, strokeWidth: size * 0.227 }, (k * 7 / depth) * size * 0.009, (k * 7 / depth) * size * 0.016)}</g>)}
       {T({ fill: 'none', stroke: INK, strokeWidth: size * 0.227 })}
       {T({ fill: 'none', stroke: RED, strokeWidth: size * 0.164 })}
       {T({ fill: 'none', stroke: INK, strokeWidth: size * 0.041 })}
@@ -274,9 +274,10 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   const fx = useRef<HTMLSpanElement>(null);
   const tiles = useMemo(() => {
     const out: { x: number; z: number }[] = [];
-    for (let x = -2400; x < 2400; x += 1600) for (let z = -7200; z < 1600; z += 1600) out.push({ x, z });
+    const [from, to] = L.portrait ? [-1600, 1600] : [-2400, 2400];
+    for (let x = from; x < to; x += 1600) for (let z = -7200; z < 1600; z += 1600) out.push({ x, z });
     return out;
-  }, []);
+  }, [L]);
 
   return (
     <div className={`li is-${phase}`} ref={root} lang={lang} dir={rtl ? 'rtl' : 'ltr'} role="region" aria-label={c.hi}
@@ -290,7 +291,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
             </div>
 
             {/* 1 — سلام! */}
-            <Stand at={L.hi} rise="hi" box={[1500, 440]} shade={900}><Solid text={c.hi} size={L.portrait ? 300 : 280} rtl={rtl} /></Stand>
+            <Stand at={L.hi} rise="hi" box={[1500, 440]} shade={900}><Solid text={c.hi} size={L.portrait ? 300 : 280} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
             <Stand at={L.me} rise="me" box={[405, 651]} shade={360}><img className="li-print" src="/live/me.webp" alt="" style={{ width: 405, left: -202, top: -651 }} /></Stand>
             <Stand at={L.hiNote} rise="hiNote" box={[600, 40]}><span className="li-note">{c.hiNote}</span></Stand>
 
@@ -302,7 +303,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
 
             {/* 3 — زنده‌ست */}
             <Stand at={L.liveNote} rise="liveNote" box={[700, 40]}><span className="li-note">{c.liveNote}</span></Stand>
-            <Stand at={L.live} rise="live" box={[1400, 420]} shade={800}><Solid text={c.live} size={L.portrait ? 270 : 250} rtl={rtl} /></Stand>
+            <Stand at={L.live} rise="live" box={[1400, 420]} shade={800}><Solid text={c.live} size={L.portrait ? 270 : 250} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
             <Stand at={L.rec} rise="rec" box={[220, 90]}><span className="li-rec"><i />REC</span></Stand>
 
             {/* 4 and 5 — the timeline is yours; it gets tired */}
@@ -313,7 +314,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
             <Stand at={L.tiresNote} rise="tiresNote" box={[700, 40]}><span className="li-note">{c.tiresNote}</span></Stand>
 
             {/* 6 — بفرما تو, and the dot the camera walks into */}
-            <Stand at={L.come} rise="come" box={[1300, 420]} shade={760}><Solid text={c.come} size={L.portrait ? 290 : 270} rtl={rtl} /></Stand>
+            <Stand at={L.come} rise="come" box={[1300, 420]} shade={760}><Solid text={c.come} size={L.portrait ? 290 : 270} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
             {L.dots.map((d, i) => <Stand key={i} at={d} rise={`dot${i}`} box={[DOT * 2, DOT * 2]} keep><i className="li-dot" style={{ width: DOT * 2, height: DOT * 2, left: -DOT, top: -DOT * 2 }} /></Stand>)}
             <Stand at={L.comeNote} rise="comeNote" box={[600, 40]}><span className="li-note">{c.comeNote}</span></Stand>
           </div>

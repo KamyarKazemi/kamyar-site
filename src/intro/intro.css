@@ -160,3 +160,10 @@ html:has(.li) { overflow: hidden; }
 .li[dir=rtl] .li-groan span { direction: rtl; }
 /* a phone keeps only the vignette: blending a textured layer over a moving 3D world every frame costs more than it shows */
 @media (max-width: 760px) { .li-grain { mix-blend-mode: normal; opacity: 1; background: radial-gradient(ellipse at 50% 46%, transparent 55%, rgb(24 22 20 / .2) 100%); } }
+
+/* a phone draws the floor and the doormat without the paper photograph under them: those textures, at a phone's 3× pixels, are the
+   heaviest thing the greeting asks of it */
+@media (max-width: 760px) {
+  .li-floor { background: repeating-linear-gradient(90deg, rgb(24 22 20 / .26) 0 2px, transparent 2px 160px), repeating-linear-gradient(0deg, rgb(24 22 20 / .26) 0 2px, transparent 2px 160px), #dcd8cf; }
+  .li-mat { background: var(--paper); }
+}
