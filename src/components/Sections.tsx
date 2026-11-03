@@ -49,7 +49,7 @@ export function About() {
         </div>
         <div className="about__text">
           <p className="about__lead rise" data-read><Read text={t.about.lead} /></p>
-          {t.about.body.map((p) => <p className="about__body rise" data-read key={p}><Read text={p} /></p>)}
+          {t.about.body.map((p, i) => <p className="about__body rise" data-read key={i}><Read text={p} /></p>)}
         </div>
       </div>
     </section>
@@ -62,8 +62,9 @@ export function Services() {
     <section className="sec sec--floor services" id="services">
       <SectionHead note={t.services.note} title={t.services.title} />
       <ul className="list">
-        {t.services.items.map((s) => (
-          <li className="list__row" key={s.label}>
+        {/* keyed by place, not by words: the two languages share the same cards, so the dealing animation keeps hold of them */}
+        {t.services.items.map((s, i) => (
+          <li className="list__row" key={i}>
             <h3 data-read><Read text={s.label} /></h3>
             <p data-read><Read text={s.detail} /></p>
           </li>
@@ -79,8 +80,8 @@ export function Terms() {
     <section className="sec sec--floor" id="terms">
       <SectionHead note={t.terms.note} title={t.terms.title} />
       <ul className="terms">
-        {t.terms.items.map((item) => (
-          <li className="rise" key={item.big}>
+        {t.terms.items.map((item, i) => (
+          <li className="rise" key={i}>
             <strong data-read><Read text={item.big} /></strong>
             <p data-read><Read text={item.detail} /></p>
           </li>

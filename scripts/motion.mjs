@@ -190,6 +190,24 @@ for (const lang of ['fa', 'en']) {
   ok('phone: close sends it home', await p.evaluate(() => !document.querySelector('.focus').open));
   await ctx.close();
 }
+// after a language switch the services are still dealt: the cards wait off the desk, then land as you scroll to them
+for (const [w, h] of [[1440, 900], [390, 844]]) {
+  const ctx = await b.newContext({ viewport: { width: w, height: h }, isMobile: w < 500, hasTouch: w < 500 });
+  await ctx.addInitScript(() => { try { localStorage.setItem('kk-voice-note', '1'); localStorage.setItem('kk-seen', '1'); } catch {} });
+  const p = await ctx.newPage();
+  p.on('pageerror', (e) => errors.push(e.message));
+  await p.goto('http://localhost:5199/', { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1500);
+  await p.evaluate(() => document.querySelector('.head__lang').click());
+  await p.waitForTimeout(3500);
+  const waiting = await p.evaluate(() => [...document.querySelectorAll('.list__row')].every((r) => Number(getComputedStyle(r).opacity) < 0.1));
+  const top = await p.evaluate(() => document.getElementById('services').getBoundingClientRect().top + scrollY);
+  for (let y = top - h; y < top + h * 2.5; y += 120) { await p.evaluate((y) => scrollTo(0, y), y); await p.waitForTimeout(80); }
+  await p.waitForTimeout(1500);
+  const dealt = await p.evaluate(() => [...document.querySelectorAll('.list__row')].every((r) => Number(getComputedStyle(r).opacity) > 0.95));
+  ok(`${w < 500 ? 'phone' : 'desktop'}: after switching language the services wait, then are dealt as you scroll`, waiting && dealt);
+  await ctx.close();
+}
 // reduced motion: no strip, no hidden text, prints in full colour, language still switches
 {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
