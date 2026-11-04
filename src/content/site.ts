@@ -29,7 +29,7 @@ export interface Copy {
   /** body paragraphs may mark a key phrase with *asterisks*: the red pen underlines it as you read */
   about: { note: string; title: string; lead: string; body: string[]; stackNote: string; stack: string };
   services: { note: string; title: string; items: { label: string; detail: string }[] };
-  work: { note: string; title: string; items: WorkItem[] };
+  work: { note: string; title: string; items: WorkItem[]; caseStudy: { note: string; title: string; teaser: string; go: string } };
   terms: { note: string; title: string; items: { big: string; detail: string }[] };
   contact: { label: string; title: string; note: string; telegram: string; email: string; instagram: string; github: string };
   viewer: { close: string; next: string; prev: string };
@@ -112,6 +112,7 @@ export const copy: Record<Lang, Copy> = {
         { ...media.toolbox, title: 'جعبه‌ابزار', kind: 'گرید نه‌تایی', alt: 'گرید نه‌تایی جعبه‌ابزار' },
         { ...media.okala, title: 'اوکالا', kind: 'کانسپت اپ', alt: 'پوستر کانسپت اپ اوکالا' },
       ],
+      caseStudy: { note: 'CASE STUDY · 01 · WORDPRESS', title: 'عطاری ناجی', teaser: 'فروشگاهی که بدون دستمزد ساختم، در ازای ۴۰٪ سود هر فروش آنلاین؛ و حالا صفحه‌ی اول گوگله.', go: 'بخون' },
     },
     terms: {
       note: 'HOW IT WORKS',
@@ -178,6 +179,7 @@ export const copy: Record<Lang, Copy> = {
         { ...media.toolbox, title: 'Toolbox', kind: 'Nine-post grid', alt: 'Toolbox nine-post grid' },
         { ...media.okala, title: 'Okala', kind: 'App concept', alt: 'Okala app concept poster' },
       ],
+      caseStudy: { note: 'CASE STUDY · 01 · WORDPRESS', title: 'Atarinaji', teaser: 'A store I built for no fee, in exchange for 40% of the profit on every online sale. It is now on page one of Google.', go: 'Read it' },
     },
     terms: {
       note: 'HOW IT WORKS',

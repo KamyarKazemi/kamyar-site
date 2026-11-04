@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { DESK_POINTER, gsap, MOTION, useGSAP } from '../lib/gsap';
-import { useLanguage } from '../lib/language';
+import { Link } from 'react-router-dom';
+import { pathFor, useLanguage } from '../lib/language';
 import { smooth } from '../lib/smooth';
 import { SectionHead } from './Sections';
 import { sfx } from '../lib/sfx';
@@ -220,6 +221,17 @@ export function Work() {
           </li>
         ))}
       </ul>
+
+      {/* the work told in full: a case study on its own page */}
+      <Link className="case-link rise" to={`${pathFor(lang) === '/' ? '' : pathFor(lang)}/work/atarinaji`}>
+        <img src="/work/atarinaji/home.webp" alt="" width="1600" height="1000" loading="lazy" decoding="async" />
+        <span className="case-link__text">
+          <span className="note">{t.work.caseStudy.note}</span>
+          <strong>{t.work.caseStudy.title}</strong>
+          <span>{t.work.caseStudy.teaser}</span>
+        </span>
+        <span className="case-link__go">{t.work.caseStudy.go} {lang === 'fa' ? '←' : '→'}</span>
+      </Link>
 
       <dialog className="focus" ref={dialog} aria-label={current?.title ?? t.work.title} onKeyDown={keys} onTouchStart={touchStart} onTouchEnd={touchEnd} onCancel={(e) => { e.preventDefault(); home(); }}>
         <div className="focus__shade" onClick={() => home()} aria-hidden="true" />

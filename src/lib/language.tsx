@@ -13,6 +13,11 @@ const POSES = 7;
 /** Each language has its own address: Persian at /, English at /en. That keeps both linkable and ready for the blog's SEO. */
 export const pathFor = (lang: Lang): string => (lang === 'en' ? '/en' : '/');
 export const langOf = (pathname: string): Lang => (/^\/en(\/|$)/.test(pathname) ? 'en' : 'fa');
+/** The same page in the other language: /work/atarinaji ↔ /en/work/atarinaji, / ↔ /en. */
+export const pathIn = (lang: Lang, pathname: string): string => {
+  const rest = pathname.replace(/^\/en(?=\/|$)/, '');
+  return lang === 'en' ? `/en${rest === '/' ? '' : rest}` : rest || '/';
+};
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -33,7 +38,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // a torn red sheet is pulled across the screen; the address changes while it covers the page, and the sheet carries on off the other side
   const toggle = useCallback(() => {
     // the section you are on is read at the moment of the switch: smooth scrolling keeps it in the address without telling the router
-    const go = () => navigate({ pathname: pathFor(lang === 'fa' ? 'en' : 'fa'), hash: window.location.hash }, { preventScrollReset: true });
+    const go = () => navigate({ pathname: pathIn(lang === 'fa' ? 'en' : 'fa', window.location.pathname), hash: window.location.hash }, { preventScrollReset: true });
     const sheet = turn.current;
     if (!sheet || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { go(); return; }
     if (turning.current) return;

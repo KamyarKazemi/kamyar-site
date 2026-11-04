@@ -1,0 +1,157 @@
+/* ───────── the Atarinaji case study: a case file on the site's paper ───────── */
+.cs { min-height: 100vh; }
+.cs-red { color: var(--red); }
+/* the typed labels are left to right inside, but sit at the reading start like everything else */
+.cs .note { align-self: flex-start; }
+.cs mark { background: none; color: inherit; font-weight: 800; text-decoration: underline 3px var(--red); text-underline-offset: .3em; }
+
+/* a plain top bar: back to the work, the kicker, the language, the way to reach him */
+.cs-top { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 18px; height: var(--head); padding-inline: var(--gutter); background: #d2d1cc var(--wall) 0 0 / 1024px; border-bottom: 1px solid var(--ink); }
+.cs-top__back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid var(--ink); background: var(--paper); font-weight: 800; font-size: 15px; text-decoration: none; }
+.cs-top__back:hover { background: var(--ink); color: var(--paper); }
+.cs-top__kicker { margin-inline-start: auto; }
+.cs-top__lang { min-width: 44px; min-height: 44px; font: 700 15px var(--typed); border: 1px solid var(--ink); background: var(--paper); }
+.cs-top__lang:hover { background: var(--ink); color: var(--paper); }
+
+.cs-main { width: min(1180px, 100%); margin: 0 auto; padding: 56px var(--gutter) 120px; display: flex; flex-direction: column; gap: clamp(80px, 10vw, 130px); }
+.cs-sheet { background: var(--paper) var(--wall) 0 0 / 1024px; background-blend-mode: multiply; border: 2px solid var(--ink); }
+.cs-h2 { font: 400 clamp(44px, 5.4vw, 66px) / 1.1 var(--display); }
+.cs-body { font-size: clamp(16px, 1.3vw, 18px); line-height: 2; }
+
+/* 01 — the title, the lead and the facts */
+.cs-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; }
+.cs-lead { max-width: 780px; font-size: clamp(19px, 1.8vw, 24px); line-height: 1.8; font-weight: 600; }
+.cs-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; margin: 0; border-block: 2px solid var(--ink); }
+.cs-facts > div { padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+.cs-facts > div:first-child { padding-inline-start: 0; }
+.cs-facts > div + div { border-inline-start: 1px solid var(--ink); }
+.cs-facts dd { margin: 0; font-weight: 800; font-size: 17px; line-height: 1.6; }
+.cs-facts a { color: var(--red); }
+
+/* the screens: the desktop site in a browser frame, the phone overlapping its corner */
+.cs-shots { position: relative; margin: 0; padding-bottom: 60px; }
+.cs-browser { width: 86%; background: var(--paper); border: 2px solid var(--ink); box-shadow: 16px 18px 0 var(--red); }
+.cs-browser__bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 2px solid var(--ink); direction: ltr; }
+.cs-browser__bar i { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--ink); }
+.cs-browser__bar span { margin-left: 12px; font: 400 13px var(--typed); }
+.cs-browser img { width: 100%; }
+.cs-phone { position: absolute; inset-inline-end: 0; bottom: 0; width: 23%; padding: 10px; background: var(--ink); border-radius: 34px; box-shadow: 12px 14px 0 var(--red); }
+.cs-phone img { width: 100%; border-radius: 26px; }
+
+/* 02 — the deal: the two numbers it stands on, and the three reasons */
+.cs-deal { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 32px; align-items: start; }
+.cs-deal__text { grid-column: span 5; display: flex; flex-direction: column; gap: 16px; }
+.cs-deal__nums { grid-column: span 7; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 2px solid var(--ink); background: var(--paper); }
+.cs-deal__nums > div { padding: 34px 30px; display: flex; flex-direction: column; gap: 10px; }
+.cs-deal__nums > div.is-red { border-inline-start: 2px solid var(--ink); background: var(--red) url('/tex/ink-red.webp') 0 0 / 512px; color: var(--paper); }
+.cs-deal__nums strong { font: 400 clamp(68px, 8vw, 104px) / 1 var(--display); }
+.cs-deal__nums small { font-size: .42em; }
+.cs-deal__nums span { font-weight: 900; font-size: 18px; }
+.cs-deal__nums em { font-style: normal; font-size: 15px; line-height: 1.8; }
+.cs-deal__why { grid-column: 1 / -1; padding: 36px 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px; }
+.cs-deal__why h3 { font-size: 20px; font-weight: 900; margin-bottom: 10px; }
+.cs-deal__why p { font-size: 16px; line-height: 2; }
+
+/* 03 — search: the four numbers, the chart, the ruler, three wins */
+.cs-search { display: flex; flex-direction: column; gap: 44px; }
+.cs-search__head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.cs-search__head > div { display: flex; flex-direction: column; gap: 14px; }
+.cs-search__head > p { max-width: 440px; font-size: 15px; line-height: 1.9; }
+.cs-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; border-block: 2px solid var(--ink); }
+.cs-stats > div { padding: 26px 20px; display: flex; flex-direction: column; gap: 6px; }
+.cs-stats > div:first-child { padding-inline-start: 0; }
+.cs-stats > div + div { border-inline-start: 1px solid var(--ink); }
+.cs-stats dd { margin: 0; font: 400 clamp(56px, 6.4vw, 88px) / 1 var(--display); }
+.cs-stats dt { font-weight: 800; font-size: 17px; }
+.cs-stats em { font-style: normal; font-size: 14px; font-weight: 700; }
+
+.cs-chart { margin: 0; padding: 30px 36px 22px; display: flex; flex-direction: column; gap: 18px; }
+.cs-chart figcaption { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 15px; }
+.cs-chart figcaption strong { font-size: 20px; font-weight: 900; }
+.cs-chart svg { width: 100%; height: clamp(160px, 20vw, 240px); overflow: visible; }
+.cs-chart__grid { fill: none; stroke: var(--ink); stroke-opacity: .15; vector-effect: non-scaling-stroke; }
+.cs-chart__area { fill: var(--red); fill-opacity: .14; }
+.cs-chart__line { fill: none; stroke: var(--red); stroke-width: 4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.cs-chart__base { stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.cs-chart__axis { display: flex; justify-content: space-between; font: 700 13px var(--typed); }
+
+/* the ruler: positions 1 to 50 from the reading start, page one tinted, each real search pinned where it stands */
+.cs-ruler { display: flex; flex-direction: column; gap: 16px; }
+.cs-ruler__head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 15px; }
+.cs-ruler__head strong { font-size: 20px; font-weight: 900; }
+.cs-ruler__track { position: relative; height: 256px; }
+.cs-ruler__one { position: absolute; inset-inline-start: 0; top: 182px; width: 18.4%; height: 28px; background: var(--red); opacity: .16; }
+.cs-ruler__line { position: absolute; inset-inline: 0; top: 195px; height: 2px; background: var(--ink); }
+.cs-ruler__tick { position: absolute; top: 186px; padding-top: 26px; font: 700 13px var(--typed); translate: calc(var(--flip, 1) * -50%) 0; }
+.cs-ruler__tick::before { content: ''; position: absolute; top: 0; left: 50%; width: 2px; height: 18px; translate: -50% 0; background: var(--ink); }
+.cs-ruler ul { position: absolute; inset: 0; }
+.cs-pin { position: absolute; top: calc(4px + var(--row) * 42px); height: calc(196px - 4px - var(--row) * 42px); width: 2px; background: var(--ink); }
+.cs-pin::after { content: ''; position: absolute; bottom: -7px; left: -6px; width: 14px; height: 14px; border-radius: 50%; background: var(--ink); }
+.cs-pin.is-one::after { background: var(--red); }
+.cs-pin span { position: absolute; top: 0; inset-inline-start: -2px; padding: 4px 10px; background: var(--paper); border: 1px solid var(--ink); font-weight: 800; font-size: 14px; white-space: nowrap; }
+/* far along the ruler the label hangs back towards the start, so it never runs off the edge */
+.cs-pin.is-far span { inset-inline-start: auto; inset-inline-end: -2px; }
+.cs-pin b { font: 700 13px var(--typed); color: var(--red); }
+[dir=rtl] .cs { --flip: -1; }
+.cs-ruler__key { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.cs-ruler__key i { width: 14px; height: 14px; background: var(--red); opacity: .5; }
+
+.cs-wins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.cs-wins > div { padding: 26px; display: flex; flex-direction: column; gap: 8px; }
+.cs-wins strong { font: 400 54px / 1 var(--display); }
+.cs-wins h3 { font-size: 17px; font-weight: 900; }
+.cs-wins p { font-size: 15px; line-height: 1.85; }
+
+/* 04 — what was built */
+.cs-built { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 32px; align-items: start; }
+.cs-built > div:first-child { grid-column: span 4; display: flex; flex-direction: column; gap: 14px; }
+.cs-built__grid { grid-column: span 8; }
+.cs-built__grid dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border-top: 2px solid var(--ink); }
+.cs-built__grid dl > div { padding: 22px 20px; border-bottom: 1px solid var(--ink); display: flex; flex-direction: column; gap: 4px; }
+.cs-built__grid dl > div:nth-child(3n + 1) { padding-inline-start: 0; }
+.cs-built__grid dd { margin: 0; font: 400 56px / 1 var(--display); }
+.cs-built__grid dt { font-weight: 800; }
+.cs-built__grid ul { margin-top: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 32px; font-size: 16px; line-height: 1.9; }
+.cs-built__grid li { position: relative; padding-inline-start: 22px; }
+.cs-built__grid li::before { content: ''; position: absolute; inset-inline-start: 0; top: .8em; width: 10px; height: 3px; background: var(--red); }
+
+.cs-pages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.cs-pages img { width: 100%; border: 2px solid var(--ink); box-shadow: 12px 14px 0 var(--red); }
+
+/* 05 — next */
+.cs-next { padding: 40px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 32px; align-items: center; }
+.cs-next > div { grid-column: span 5; display: flex; flex-direction: column; gap: 12px; }
+.cs-next ul { grid-column: span 7; border-top: 2px solid var(--ink); }
+.cs-next li { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--ink); font-size: 18px; }
+.cs-next li .typed { white-space: nowrap; }
+
+.cs-end { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; padding-top: 32px; border-top: 2px solid var(--ink); }
+.cs-end p { font: 400 clamp(32px, 4vw, 46px) / 1.2 var(--display); }
+
+/* a phone: everything in one column, the four numbers in a two by two */
+@media (max-width: 860px) {
+  .cs-top__kicker { display: none; }
+  .cs-top .btn { margin-inline-start: auto; }
+  .cs-facts, .cs-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cs-facts > div, .cs-stats > div { padding-inline: 0 14px; border-bottom: 1px solid var(--ink); }
+  .cs-facts > div + div, .cs-stats > div + div { border-inline-start: 0; }
+  /* twelve columns with their gaps are wider than a phone on their own: one column here */
+  .cs-deal, .cs-built, .cs-next { grid-template-columns: minmax(0, 1fr); }
+  .cs-deal__text, .cs-deal__nums, .cs-built > div:first-child, .cs-built__grid, .cs-next > div, .cs-next ul { grid-column: 1 / -1; }
+  .cs-top { gap: 10px; }
+  .cs-top__back { padding: 0 12px; font-size: 14px; white-space: nowrap; }
+  .cs-deal__why, .cs-wins, .cs-pages, .cs-built__grid ul { grid-template-columns: 1fr; }
+  .cs-deal__why, .cs-next { padding: 26px 22px; }
+  .cs-built__grid dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cs-built__grid dl > div:nth-child(n) { padding-inline: 0 14px; }
+  .cs-browser { width: 100%; box-shadow: 8px 10px 0 var(--red); }
+  .cs-shots { padding-bottom: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 0; }
+  .cs-phone { position: relative; width: 46%; margin-top: -26%; margin-inline-end: 6px; }
+  /* the ruler on a narrow screen: each pin on its own row, the label inside the track */
+  .cs-ruler__track { height: 380px; }
+  .cs-ruler__one { top: 306px; }
+  .cs-ruler__line { top: 319px; }
+  .cs-ruler__tick { top: 310px; }
+  .cs-pin { top: calc(4px + var(--i) * 42px); height: calc(320px - 4px - var(--i) * 42px); }
+  .cs-pin span { font-size: 13px; padding: 3px 8px; }
+}

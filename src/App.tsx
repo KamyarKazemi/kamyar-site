@@ -58,6 +58,13 @@ export function App() {
   }, { scope: root });
 
   useEffect(() => pointerSounds(), []);
+  // arriving with a section in the address (back from a case study, a shared link): start there, under the header
+  useEffect(() => {
+    const id = location.hash.slice(1), at = id ? document.getElementById(id) : null;
+    if (!at || live) return;
+    const head = document.querySelector<HTMLElement>('.head')?.offsetHeight ?? 0;
+    requestAnimationFrame(() => scrollTo({ top: at.getBoundingClientRect().top + scrollY - head, behavior: 'instant' }));
+  }, []);
 
   // the two languages lay out differently, so scroll positions are measured again after a switch
   useGSAP(() => { ScrollTrigger.refresh(); }, { dependencies: [lang], revertOnUpdate: false });

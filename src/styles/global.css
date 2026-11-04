@@ -360,6 +360,17 @@ a { color: inherit; transition: color .15s; }
 .head__sound.is-off .head__waves { opacity: .25; }
 @media (max-width: 760px) { .head__sound { width: 44px; height: 44px; } }
 
+/* the case study's way in, under the prints: a wide paper strip with the site's screen, its name, one line and a red arrow */
+.case-link { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr) auto; align-items: center; gap: clamp(18px, 3vw, 40px); margin-top: clamp(48px, 6vw, 80px); padding: 18px; background: var(--paper) var(--wall) 0 0 / 1024px; background-blend-mode: multiply; border: 2px solid var(--ink); box-shadow: 10px 12px 0 var(--red); text-decoration: none; transition: translate .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s cubic-bezier(.2, .8, .2, 1); }
+.case-link:hover { translate: -2px -3px; box-shadow: 14px 17px 0 var(--red); color: inherit; }
+.case-link img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border: 1px solid var(--ink); }
+.case-link__text { display: flex; flex-direction: column; gap: 6px; }
+.case-link__text > .note { align-self: flex-start; }
+.case-link__text strong { font: 400 clamp(34px, 3.6vw, 52px) / 1.1 var(--display); }
+.case-link__text > span:last-child { font-size: clamp(15px, 1.2vw, 17px); line-height: 1.8; max-width: 620px; }
+.case-link__go { padding: 12px 22px; background: var(--red) url('/tex/ink-red.webp') 0 0 / 512px; color: var(--paper); font-weight: 900; border: 2px solid var(--ink); white-space: nowrap; }
+@media (max-width: 720px) { .case-link { grid-template-columns: 1fr; } .case-link__go { justify-self: start; } }
+
 /* under the live intro the site is not drawn until the red opens over it */
 .is-covered > :not(.li, .li-wait) { visibility: hidden; }
 

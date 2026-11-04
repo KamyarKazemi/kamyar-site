@@ -39,5 +39,28 @@ await p.click('.lost .btn');
 await p.waitForTimeout(500);
 ok('404 button returns home', (await state()).path === '/en');
 
+// the case study: its own page in each language, reached from the work section, with a switch that stays on it and a way back
+await p.goto(`${base}/#work`, { waitUntil: 'networkidle' });
+await p.waitForTimeout(800);
+await p.click('.case-link');
+await p.waitForTimeout(1200);
+s = await state();
+ok(`the work section opens the case study (${s.path}, ${s.h1})`, s.path === '/work/atarinaji' && s.h1 === 'عطاری ناجی' && s.lang === 'fa');
+ok('the case study has its own title', (await p.title()).startsWith('عطاری ناجی'));
+const nums = await p.evaluate(() => [...document.querySelectorAll('.cs-stats dd')].map((d) => d.textContent).join(' '));
+ok(`it shows the real Search Console numbers (${nums})`, nums.includes('۹٫۸') && nums.includes('۷۵۴') && nums.includes('۶۴'));
+await p.click('.cs-top__lang');
+await p.waitForTimeout(1500);
+s = await state();
+ok(`the switch stays on the case study (${s.path}, ${s.h1})`, s.path === '/en/work/atarinaji' && s.h1 === 'Atarinaji' && s.lang === 'en');
+await p.click('.cs-top__back');
+await p.waitForTimeout(1200);
+s = await state();
+const at = await p.evaluate(() => Math.round(document.getElementById('work').getBoundingClientRect().top));
+ok(`back goes to the English work section, scrolled to it (${s.path}${s.hash}, ${at}px from the top)`, s.path === '/en' && s.hash === '#work' && at > -40 && at < 200);
+await p.goto(`${base}/en/work/atarinaji`, { waitUntil: 'networkidle' });
+s = await state();
+ok(`/en/work/atarinaji loads directly in English (${s.h1})`, s.h1 === 'Atarinaji' && s.dir === 'ltr');
+
 await b.close();
 console.log(errors.length ? [...new Set(errors)].join('\n') : 'no page errors');
