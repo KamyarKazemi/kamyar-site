@@ -89,6 +89,8 @@ export const copy: Record<Lang, Copy> = {
       body: [
         'بیش از دو ساله تو یه استارتاپ تو شیراز *همه‌ی همین نقش‌ها* رو انجام می‌دم. بعضی از کارام تحت NDA هستن، پس نمی‌تونم نشونشون بدم.',
         'تو وب با *ری‌اکت، تایپ‌اسکریپت، Tailwind، GSAP و وردپرس* کار می‌کنم، تو ویدیو با *نرم‌افزارای ادوبی و HyperFrames*، و *Claude* هم جزو ابزارای هر روزمه.',
+        'هر کاری تحویل می‌دم سعی می‌کنم هم خلاقانه باشه هم بهینه؛ از طراحی تا لحظه‌ای که دیپلوی می‌شه و لایو می‌ره. نمی‌خوام فقط سایت بسازم، می‌خوام *یه تجربه* بسازم؛ هرچند این به خیلی چیزا بستگی داره، مثل بودجه و نوع همکاری، که نمونه‌ش رو تو عطاری ناجی می‌بینی.',
+        'به جزئیات حساسم، ددلاین برام مهمه و ارتباطم شفافه؛ از اول تا آخر پروژه می‌دونی کار به کجا رسیده. عاشق یاد گرفتنم و همیشه دنبال راه بهتری برای انجام کارم.',
         'سطح انگلیسیم *C2* هست و روون صحبت می‌کنم، و سرپرستی تیم مارکتینگ یه استودیوی بازی‌سازی تو آمریکای شمالی هم تو کارنامه‌مه. دارم فنی و حرفه‌ای می‌خونم و خرداد ۱۴۰۶ فارغ‌التحصیل می‌شم.',
       ],
       stackNote: 'STACK',
@@ -153,6 +155,8 @@ export const copy: Record<Lang, Copy> = {
       body: [
         'For more than two years I’ve worked at a startup in Shiraz in *all of these roles*. Some of that work is under NDA, so I can’t show it.',
         'On the web I work with *React, TypeScript, Tailwind, GSAP and WordPress*; for video, *Adobe apps and HyperFrames*; and *Claude* is one of my everyday tools.',
+        'Whatever I deliver, I try to make it creative and optimized, from the design to the moment it’s deployed and goes live. I don’t want to just make websites; I want to make *experiences*. How far that goes depends on a lot of things, like the budget and the kind of collaboration, as the Atarinaji case shows.',
+        'I care about the details, I take deadlines seriously and I keep communication clear, so you always know where the project stands. I love learning, and I’m always looking for a better way to do the work.',
         'My English is *C2* and I speak it fluently, and I’ve headed the marketing team of a game studio in North America. I’m studying at a technical and vocational school and graduate in June 2027.',
       ],
       stackNote: 'STACK',
