@@ -66,6 +66,7 @@ export function Services() {
         {t.services.items.map((s, i) => (
           <li className="list__row" key={i}>
             <h3 data-read><Read text={s.label} /></h3>
+            <p className="list__motto" data-read><Read text={s.motto} /></p>
             <p data-read><Read text={s.detail} /></p>
           </li>
         ))}
@@ -79,14 +80,19 @@ export function Terms() {
   return (
     <section className="sec sec--floor" id="terms">
       <SectionHead note={t.terms.note} title={t.terms.title} />
-      <ul className="terms">
-        {t.terms.items.map((item, i) => (
-          <li className="rise" key={i}>
-            <strong data-read><Read text={item.big} /></strong>
-            <p data-read><Read text={item.detail} /></p>
-          </li>
-        ))}
-      </ul>
+      {/* no price list: prices are asked for on Telegram, where he answers himself */}
+      <div className="price rise">
+        <div className="price__text">
+          <p className="note">{t.terms.price.note}</p>
+          <h3>{t.terms.price.title}</h3>
+          <p data-read><Read text={t.terms.price.body} /></p>
+        </div>
+        <a className="btn price__btn" href={links.telegram} target="_blank" rel="noreferrer">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true"><path d="M21 4 3 11.2l6.4 2.3L19 7l-7.6 8.1.4 5L14.6 15l4 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
+          <span>{t.terms.price.button}</span>
+          <span className="typed price__handle">{links.telegramName}</span>
+        </a>
+      </div>
     </section>
   );
 }

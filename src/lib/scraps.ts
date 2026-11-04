@@ -3,8 +3,8 @@ import { POSE } from './paper';
 import { sfx } from './sfx';
 
 /** What a scrap can land on, and which of those take the hit with a small jolt. */
-const SURFACES = '.hero__floor, .hero__roles, .hero__actions .btn, .about__lead, .about__body, .about__stack, .list__row, .card, .terms li, .contact__label, .contact__line, .contact__btn, .channels';
-const JOLTS = '.btn, .hero__roles, .about__lead, .list__row, .terms li, .contact__label, .channels, .card';
+const SURFACES = '.hero__floor, .hero__roles, .hero__actions .btn, .about__lead, .about__body, .about__stack, .list__row, .card, .price, .contact__label, .contact__line, .contact__btn, .channels';
+const JOLTS = '.btn, .hero__roles, .about__lead, .list__row, .price, .contact__label, .channels, .card';
 const GRAVITY = 2600, BOUNCE = 0.32, REST_SPEED = 220, LINGER = 1.8;
 
 interface Surface { el: HTMLElement; top: number; left: number; right: number; jolt: boolean }
