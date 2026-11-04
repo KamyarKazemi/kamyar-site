@@ -32,7 +32,8 @@ export interface Layout {
   portfolio: Place; portfolioNote: Place; works: Place[];
   mat: Place; heart: Place; matNote: Place;
   board: Place; live: Place; rec: Place; liveNote: Place; play: Place;
-  come: Place; dots: Place[];
+  /** the three dots trail the last word: on its left in Persian, on its right in English */
+  come: Place; dots: Place[]; comeEn: Place; dotsEn: Place[];
   route: [number, number][];
 }
 
@@ -70,6 +71,9 @@ export function layout(portrait: boolean): Layout {
     play: { x: 0, z: portrait ? -6700 : -7310, y: portrait ? 0 : -470 },
     come: { x: 60 * s, z: -9800, ry: 4 },
     dots: [0, 1, 2].map((i) => ({ x: (portrait ? -330 : -440) - i * 70 * s, z: -9780, y: -70, ry: 4 })),
+    // "Come in" is wider than «بفرما», so in English the word stands further left to leave room for the dots on its right
+    comeEn: { x: portrait ? -60 : -110, z: -9800, ry: 4 },
+    dotsEn: [0, 1, 2].map((i) => ({ x: (portrait ? 310 : 440) + i * 70 * s, z: -9780, y: -70, ry: 4 })),
     route: [[0, 600], [0, -900], [-90 * s, -1600], [-60 * s, -2400], [120 * s, -3400], [-40 * s, -4100], [60 * s, -5200], [-80 * s, -6200], [100 * s, -7000], [-60 * s, -8000], [60 * s, -9000], [0, -9800]],
   };
 }
@@ -112,7 +116,7 @@ export interface Cue { t: number; hit: Hit; level?: number }
  *  14.20  «آه، راستی!» — the camera whips round · 16.38 «زنده» — the board, «زنده‌ست», REC · 17.94 «باهاش بازی کنی» — its playhead runs
  *  19.10  his voice has ended — «بفرما», three dots, and the dive into the last red dot
  */
-export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard: (sag: number, head: number, drop: number) => void): { tl: gsap.core.Timeline; cues: Cue[] } {
+export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard: (sag: number, head: number, drop: number) => void, rtl: boolean): { tl: gsap.core.Timeline; cues: Cue[]; aim: (rtl: boolean) => void } {
   const q = <T extends Element = HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
   const all = (sel: string) => [...root.querySelectorAll<HTMLElement>(sel)];
   const rise = stepped('back.out(1.7)', 7);
@@ -213,12 +217,18 @@ export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard:
   breathe('live', 16.9, 18.9, 1.2);
 
   // and in, right after his last word: «بفرما», three dots, and the camera walks into the last one
-  tl.to(cam, { ...at(L.come, L.dist + 80), rx: -3, ry: -2, duration: 0.9, ease: 'power3.inOut' }, 19.1);
+  const come: Place & { look: number } = { x: 0, z: 0, look: 0 }, last: Place = { x: 0, z: 0 };
+  const walk = gsap.to(cam, { x: () => come.x + come.look, y: EYE, z: () => come.z + L.dist + 80, rx: -3, ry: -2, duration: 0.9, ease: 'power3.inOut' });
+  tl.add(walk, 19.1);
   cue(19.1, 'whoosh', 0.5);
   up('come', 19.65, 'thud', 0.5);
   L.dots.forEach((_, i) => up(`dot${i}`, 19.9 + i * 0.16, 'pop', 0.25));
-  const last = L.dots[2]!;
-  tl.to(cam, { x: last.x, y: (last.y ?? 0) - DOT, z: last.z + 24, rx: 0, ry: -last.ry!, duration: 1.3, ease: 'power3.in' }, 20.4);
+  // the walk in and the dive aim at the word and the last dot of the language being spoken; picking a language on the gate
+  // re-aims them before the tape runs
+  const dive = gsap.to(cam, { x: () => last.x, y: () => (last.y ?? 0) - DOT, z: () => last.z + 24, rx: 0, ry: () => -(last.ry ?? 0), duration: 1.3, ease: 'power3.in' });
+  const aim = (rtl: boolean) => { Object.assign(come, rtl ? L.come : L.comeEn, { look: rtl ? 0 : L.portrait ? 60 : 150 }); Object.assign(last, (rtl ? L.dots : L.dotsEn)[2]); walk.invalidate(); dive.invalidate(); };
+  aim(rtl);
+  tl.add(dive, 20.4);
   cue(20.4, 'whoosh', 0.8);
   tl.fromTo(q('.li-red'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 21.7 - 0.08);
 
@@ -227,7 +237,7 @@ export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard:
   // run it once through and back, so every piece starts in its first state before the tape moves
   tl.progress(1, true).progress(0, true);
   redraw();
-  return { tl, cues };
+  return { tl, cues, aim };
 }
 
 /** The camera as a transform on the world: the eye stands `perspective` in front of the screen, looking from `cam`. */

@@ -109,6 +109,8 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const board = useRef<Record<string, SVGElement | null>>({});
+  const aimAt = useRef<(rtl: boolean) => void>(() => {});
+  useEffect(() => { aimAt.current(rtl); }, [rtl]);
 
   // the world is drawn at the scale that covers the screen
   useLayoutEffect(() => {
@@ -136,7 +138,8 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
       b.knob?.setAttribute('d', p.knob);
       if (b.drop) { b.drop.setAttribute('cx', String(p.drop.x)); b.drop.setAttribute('cy', p.drop.y.toFixed(1)); b.drop.setAttribute('opacity', String(p.drop.o)); }
     };
-    const { tl, cues } = buildScene(el, L, cam, drawBoard);
+    const { tl, cues, aim } = buildScene(el, L, cam, drawBoard, rtl);
+    aimAt.current = aim;
     const stations = [...el.querySelectorAll<HTMLElement>('.li-at')].map((at) => ({ at, z: Number(at.dataset.z), near: at.dataset.near ? Number(at.dataset.near) : null, keep: 'keep' in at.dataset, face: at.querySelector<HTMLElement>('.li-anchor') }));
     const frame = (time: number, rate: number) => {
       if (!camEl.current) return;
@@ -341,8 +344,8 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
             <Stand at={L.play} rise="play" near={near.play} box={[1300, 160]}><Plain text={c.play} size={L.portrait ? 80 : 96} rtl={rtl} /></Stand>
 
             {/* and in: «بفرما», and the dot the camera walks into */}
-            <Stand at={L.come} rise="come" box={[1300, 420]} shade={L.portrait ? undefined : 760}><Solid text={c.come} size={L.portrait ? 290 : 270} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
-            {L.dots.map((d, i) => <Stand key={i} at={d} rise={`dot${i}`} box={[DOT * 2, DOT * 2]} keep><i className="li-dot" style={{ width: DOT * 2, height: DOT * 2, left: -DOT, top: -DOT * 2 }} /></Stand>)}
+            <Stand at={rtl ? L.come : L.comeEn} rise="come" box={[1300, 420]} shade={L.portrait ? undefined : 760}><Solid text={c.come} size={L.portrait ? (rtl ? 290 : 210) : 270} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
+            {(rtl ? L.dots : L.dotsEn).map((d, i) => <Stand key={i} at={d} rise={`dot${i}`} box={[DOT * 2, DOT * 2]} keep><i className="li-dot" style={{ width: DOT * 2, height: DOT * 2, left: -DOT, top: -DOT * 2 }} /></Stand>)}
           </div>
         </div>
     </>

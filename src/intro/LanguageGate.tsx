@@ -12,8 +12,10 @@ const tall = () => window.innerHeight > window.innerWidth;
 
 /**
  * The first thing on the site: choose a language. The screen is two halves of paper torn down the middle (across it on a phone):
- * «فارسی» on the reading side, English on the other, the hello label pinned on the seam. Each half is one big button. The half you
- * did not pick is torn away and falls; the half you kept lies down flat, and the intro starts on the floor it became.
+ * «فارسی» on the reading side, English on the other, the hello label pinned on the seam. Each half is one big button. Once one is
+ * picked the paper gets out of the way by flat moves only: no 3D, no fading of the big sheets, no filter in motion, which is what
+ * made the old exit (the kept half lying down in perspective) flicker on real graphics cards. The two halves are pulled apart off
+ * the screen like curtains, the other one first.
  *
  * `onPress` runs inside the tap, so the browser lets the intro start its sound; `onGone` runs once the paper is out of the way.
  */
@@ -37,8 +39,10 @@ export function LanguageGate({ onPress, onGone, solid = false }: { onPress: (lan
     });
     // English is the second half: left of the seam on a wide screen, under it on a tall one
     const en = portrait ? ['0 100%', '100% 100%', ...pts(line, 0)] : ['0 0', ...pts(line, 0), '0 100%'];
+    // the Persian sheet is the whole screen under the English one; on the way out it is cut along the same tear
+    const fa = portrait ? ['0 0', '100% 0', ...pts(line, 0)] : ['100% 0', ...pts(line, 0), '100% 100%'];
     const ink = portrait ? ['0 100%', '100% 100%', ...pts(core, -0.9)] : ['0 0', ...pts(core, 0.9), '0 100%'];
-    return { en: `polygon(${en.join(',')})`, core: `polygon(${ink.join(',')})` };
+    return { en: `polygon(${en.join(',')})`, fa: `polygon(${fa.join(',')})`, core: `polygon(${ink.join(',')})` };
   }, [portrait]);
 
   // the halves are pushed together from either side, the seam settles, the label is pinned on it and the titles stand up
@@ -65,17 +69,22 @@ export function LanguageGate({ onPress, onGone, solid = false }: { onPress: (lan
     const el = root.current!;
     el.classList.add('is-picked', `is-${lang}`);
     if (!window.matchMedia(MOTION).matches || solid) { onGone(lang); return; }
-    const kept = el.querySelectorAll(lang === 'fa' ? '.gate__half--fa' : '.gate__half--en, .gate__core'), lost = el.querySelectorAll(lang === 'fa' ? '.gate__half--en, .gate__core' : '.gate__half--fa');
+    const fa = el.querySelector<HTMLElement>('.gate__half--fa')!, en = el.querySelectorAll<HTMLElement>('.gate__half--en, .gate__core');
+    const kept = lang === 'fa' ? [fa] : [...en], lost = lang === 'fa' ? [...en] : [fa];
     const side = lang === 'fa' ? -1 : 1;
-    gsap.timeline({ onComplete: () => onGone(lang) })
+    fa.style.clipPath = cut.fa;
+    gsap.set([fa, ...en], { willChange: 'transform' });
+    const tl = gsap.timeline({ onComplete: () => onGone(lang) })
       .call(() => sfx('rip', 0.85, 0.9), [], POSE)
-      .call(() => sfx('slap', 0.45, 0.85), [], 13 * POSE)
-      // the kept half takes the press, the label is torn off the seam with the other half
+      // the kept half takes the press, the label is torn off the seam
       .fromTo(el.querySelector(`.gate__half--${lang} .gate__in`), { scale: 0.97 }, { scale: 1, duration: 3 * POSE, ease: 'steps(3)' }, 0)
-      .to('.gate__label', { y: 40, rotation: side * -22, autoAlpha: 0, duration: 5 * POSE, ease: stepped('power2.in', 5) }, POSE)
-      .to(lost, { ...(portrait ? { yPercent: side * -18 } : { xPercent: side * 14 }), y: '+=140', rotation: side * 9, autoAlpha: 0, duration: 7 * POSE, ease: stepped('power2.in', 7) }, POSE)
-      // then the half you kept lies down flat: it is the floor the intro starts on
-      .to(kept, { rotationX: 82, transformPerspective: 1200, transformOrigin: '50% 100%', autoAlpha: 0, duration: 8 * POSE, ease: stepped('power2.in', 8) }, 7 * POSE);
+      .to('.gate__label', { y: 40, rotation: side * -22, autoAlpha: 0, duration: 5 * POSE, ease: stepped('power2.in', 5) }, POSE);
+    // each half leaves away from the seam: Persian to the right (up on a phone), English to the left (down)
+    const away = (sheets: HTMLElement[]) => (sheets.includes(fa) ? (portrait ? { yPercent: -102 } : { xPercent: 102 }) : (portrait ? { yPercent: 102 } : { xPercent: -102 }));
+    // the two halves are pulled apart off the screen, the other one first
+    tl.call(() => sfx('slide', 0.6, 0.95), [], 2 * POSE)
+      .to(lost, { ...away(lost), duration: 7 * POSE, ease: stepped('power3.in', 7) }, 2 * POSE)
+      .to(kept, { ...away(kept), duration: 7 * POSE, ease: stepped('power3.in', 7) }, 4 * POSE);
   };
 
   const half = (lang: Lang) => {

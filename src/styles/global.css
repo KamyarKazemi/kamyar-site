@@ -360,6 +360,9 @@ a { color: inherit; transition: color .15s; }
 .head__sound.is-off .head__waves { opacity: .25; }
 @media (max-width: 760px) { .head__sound { width: 44px; height: 44px; } }
 
+/* under the live intro the site is not drawn until the red opens over it */
+.is-covered > :not(.li, .li-wait) { visibility: hidden; }
+
 /* the paper that covers the site for a moment on a first visit, while the language gate is downloaded */
 .li-wait { position: fixed; inset: 0; z-index: 95; background: #d2d1cc var(--wall) 0 0 / 1024px; }
 

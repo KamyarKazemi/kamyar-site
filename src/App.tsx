@@ -31,6 +31,9 @@ export function App() {
   const [live, setLive] = useState(() => pathname.replace(/\/$/, '').endsWith('/intro') || !seen());
   const motion = window.matchMedia(MOTION).matches;
   const opening = useRef<((after: number) => void) | null>(null);
+  // while the intro covers the screen the site under it is not drawn at all: a desktop graphics card holding the site, the intro's
+  // 3D world and the gate's paper sheets at once ran out of memory and flashed the site through the intro for single frames
+  const [covered, setCovered] = useState(() => live && motion);
 
   useGSAP(() => {
     const mm = gsap.matchMedia();
@@ -59,14 +62,14 @@ export function App() {
   // the two languages lay out differently, so scroll positions are measured again after a switch
   useGSAP(() => { ScrollTrigger.refresh(); }, { dependencies: [lang], revertOnUpdate: false });
 
-  const reveal = useCallback((after: number) => { opening.current?.(after); opening.current = null; }, []);
+  const reveal = useCallback((after: number) => { setCovered(false); opening.current?.(after); opening.current = null; }, []);
   const done = useCallback(() => { remember(); setLive(false); navigate(pathFor(lang), { replace: true }); }, [lang, navigate]);
   // with reduced motion there is no film: the gate asks for the language and the site opens in it
   const choose = useCallback((pick: 'fa' | 'en') => { navigate(pathFor(pick), { replace: true }); }, [navigate]);
   const enter = useCallback(() => { remember(); setLive(false); }, []);
 
   return (
-    <div ref={root}>
+    <div ref={root} className={covered ? 'is-covered' : undefined}>
       {/* while that download arrives, plain paper covers the site so it is never seen before the gate */}
       {live && <Suspense fallback={<i className="li-wait" aria-hidden="true" />}>{motion ? <LiveIntro onReveal={reveal} onDone={done} /> : <LanguageGate solid onPress={choose} onGone={enter} />}</Suspense>}
       <a className="skip" href="#about">{t.skip}</a>

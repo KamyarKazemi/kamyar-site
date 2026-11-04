@@ -95,14 +95,14 @@ const has = (list, ...names) => names.every((n) => list.includes(n));
   await p.context().close();
 }
 {
-  // the gate: the half you did not pick is torn away, the kept one lies down
+  // the gate: it tears, and the two halves slide apart off the screen
   const p = await open('/', { width: 1440, height: 900 }, false);
   await p.waitForTimeout(2200);
   const r = await p.locator('.gate__half--fa .gate__in').boundingBox();
   await p.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
   await p.waitForTimeout(1600);
   const s = await heard(p);
-  ok(`the language gate tears and lies down (${[...new Set(s)].join(', ')})`, has(s, 'rip', 'slap'));
+  ok(`the language gate tears and slides apart (${[...new Set(s)].join(', ')})`, has(s, 'rip', 'slide'));
   await p.context().close();
 }
 ok(`no page errors${errors.length ? ': ' + [...new Set(errors)].slice(0, 3).join(' | ') : ''}`, !errors.length);

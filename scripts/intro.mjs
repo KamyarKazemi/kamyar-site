@@ -99,6 +99,11 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   await pick(p, 'en');
   const s = await p.evaluate(() => ({ path: location.pathname, lang: document.querySelector('.li')?.getAttribute('lang'), name: document.querySelector('[data-rise="name"] text')?.textContent }));
   ok(`picking English: the intro is in English, the address waits (${s.path}, ${s.lang}, ${s.name})`, s.path === '/' && s.lang === 'en' && s.name === 'Kamyar');
+  // the dots trail «Come in» on its right, and the camera's walk and dive follow them there
+  await seek(p, 20.4);
+  await p.waitForTimeout(150);
+  const dots = await p.evaluate(() => [...document.querySelectorAll('.li-dot')].map((d) => d.getBoundingClientRect()).map((r) => ({ x: r.left + r.width / 2, w: r.width })));
+  ok(`English: the three dots trail the word on its right, all on screen (${dots.map((d) => Math.round(d.x)).join(', ')})`, dots.length === 3 && dots.every((d) => d.x > 720 && d.x + d.w / 2 < 1440 + 2));
   await p.evaluate(() => { window.__tape.seek(window.__tape.duration - 0.6); window.__tape.play(true); });
   await p.waitForTimeout(3400);
   const e = await p.evaluate(() => ({ path: location.pathname, lang: document.documentElement.lang, live: !!document.querySelector('.li') }));
