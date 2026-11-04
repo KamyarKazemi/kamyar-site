@@ -70,6 +70,9 @@ export class Tape {
       this.rate += (target - this.rate) * (1 - Math.exp(-dt * 9));
       if (Math.abs(this.rate) < 0.01 && !target) this.rate = 0;
       this.time += this.rate * dt;
+      // at normal play his voice is the clock: after a slow frame the picture catches up with it instead of the voice being cut
+      const voice = this.held || !this.playing || Math.abs(this.rate - 1) > 0.02 ? null : this.sound?.position();
+      if (voice != null && Math.abs(voice - this.time) < 0.6) this.time = voice;
     }
     this.time = Math.min(this.duration, Math.max(0, this.time));
     if (this.time <= 0 && this.rate < 0) this.rate = 0;

@@ -127,6 +127,16 @@ export class TapeSound {
     this.speaking = { node, gain, dir, at: now, from: time, rate: pace };
   }
 
+  /**
+   * Where his voice is right now (seconds), while it plays forwards at normal speed; null otherwise. The tape follows this during
+   * normal play, so a slow frame never lets the picture fall behind and force the voice to be cut and restarted.
+   */
+  position(): number | null {
+    const p = this.speaking;
+    if (!p || p.dir < 0 || Math.abs(p.rate - 1) > 0.02 || this.ctx.state !== 'running') return null;
+    return p.from + (this.ctx.currentTime - p.at) * p.rate;
+  }
+
   private hush(): void {
     const p = this.speaking;
     if (!p) return;
