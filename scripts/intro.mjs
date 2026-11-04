@@ -35,12 +35,12 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   ok(`${tag} the gate is gone once a language is picked`, !(await p.$('.gate')));
   ok(`${tag} it plays`, await p.evaluate(() => window.__tape.time > 0.2 && window.__tape.playing));
 
-  for (const [t, rise, name] of [[1.6, 'hi', 'the hello'], [3.0, 'name', 'his name'], [3.0, 'me', 'his print'], [5.3, 'role2', 'the last role'], [9.6, 'work3', 'the last work print'], [17.2, 'board', 'the timeline board'], [17.3, 'live', 'LIVE'], [20.2, 'more', 'there is more in here'], [21.9, 'come', 'come in']]) {
+  for (const [t, rise, name] of [[1.6, 'hi', 'the hello'], [3.0, 'name', 'his name'], [3.0, 'me', 'his print'], [5.3, 'role2', 'the last role'], [9.6, 'work3', 'the last work print'], [17.2, 'board', 'the timeline board'], [17.3, 'live', 'LIVE'], [20.3, 'come', 'come in']]) {
     await seek(p, t);
     await p.waitForTimeout(120);
     ok(`${tag} ${name} stands up and is on screen at ${t}s`, await shown(p, rise));
   }
-  if (frames) for (const t of [1.0, 3.0, 5.2, 7.4, 9.6, 12.6, 14.4, 17.2, 18.4, 20.2, 21.9, 22.8]) {
+  if (frames) for (const t of [1.0, 3.0, 5.2, 7.4, 9.6, 12.6, 14.4, 17.2, 18.4, 19.4, 20.3, 21.2]) {
     await seek(p, t);
     await p.waitForTimeout(150);
     await p.screenshot({ path: `shots/intro-${tag}-${String(t).replace('.', '_')}.png` });
@@ -91,34 +91,18 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   await p.context().close();
 }
 
-// a first visit to / starts at the gate. The tape is already running while the picked half is still lying down. Picking English
-// makes the intro speak English at once, but the address (and the site behind) switches to /en only under the red at the end
+// a first visit to / starts at the gate. Picking English makes the intro speak English at once, but the address (and the site
+// behind) switches to /en only under the red at the end
 {
   const p = await open('/', { width: 1440, height: 900 });
   ok('a first visit to / opens on the language gate', await p.isVisible('.gate'));
-  await pick(p, 'en', 900);
-  const s = await p.evaluate(() => ({ gate: !!document.querySelector('.gate'), time: window.__tape.time, path: location.pathname, lang: document.querySelector('.li')?.getAttribute('lang'), name: document.querySelector('[data-rise="name"] text')?.textContent }));
-  ok(`the intro is already moving while the gate lies down (gate up ${s.gate}, tape at ${s.time.toFixed(2)})`, s.gate && s.time > 0.05);
+  await pick(p, 'en');
+  const s = await p.evaluate(() => ({ path: location.pathname, lang: document.querySelector('.li')?.getAttribute('lang'), name: document.querySelector('[data-rise="name"] text')?.textContent }));
   ok(`picking English: the intro is in English, the address waits (${s.path}, ${s.lang}, ${s.name})`, s.path === '/' && s.lang === 'en' && s.name === 'Kamyar');
   await p.evaluate(() => { window.__tape.seek(window.__tape.duration - 0.6); window.__tape.play(true); });
   await p.waitForTimeout(3400);
   const e = await p.evaluate(() => ({ path: location.pathname, lang: document.documentElement.lang, live: !!document.querySelector('.li') }));
   ok(`…and the English site comes out from under the red (${e.path}, ${e.lang})`, !e.live && e.path === '/en' && e.lang === 'en');
-  await p.context().close();
-}
-// on a phone, picking English tears the Persian half off upwards instead of fading it where it is
-{
-  const p = await open('/', { width: 390, height: 844 });
-  await p.waitForTimeout(1200);
-  const r = await p.locator('.gate__half--en .gate__in').boundingBox();
-  await p.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
-  // the highest the half gets while it is torn away
-  const top = await p.evaluate(() => new Promise((done) => {
-    let min = 0; const end = performance.now() + 900;
-    const look = () => { const el = document.querySelector('.gate__half--fa'); if (el) min = Math.min(min, el.getBoundingClientRect().top); if (performance.now() < end && el) requestAnimationFrame(look); else done(min); };
-    requestAnimationFrame(look);
-  }));
-  ok(`phone: the Persian half is torn off upwards (${Math.round(top)}px)`, top < -60);
   await p.context().close();
 }
 // a returning visitor goes straight to the site

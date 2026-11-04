@@ -105,7 +105,6 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   const tape = useRef<Tape | null>(null);
   const sound = useRef<TapeSound | null>(null);
   const [phase, setPhase] = useState<'ready' | 'running' | 'leaving'>('ready');
-  const [gateUp, setGateUp] = useState(true);
   const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -232,7 +231,6 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
     // a different language than the address re-renders the world in it: done in slices, so the gate keeps tearing smoothly meanwhile
     if (pick !== lang) startTransition(() => setPicked(pick));
   };
-  // the tape starts as the kept half of the gate lies down, so the camera is already moving when the paper becomes the floor
   const start = () => {
     tape.current?.play(true);
     setPlaying(true);
@@ -342,11 +340,6 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
             <Stand at={L.rec} rise="rec" near={near.words} box={[220, 90]}><span className="li-rec"><i />REC</span></Stand>
             <Stand at={L.play} rise="play" near={near.play} box={[1300, 160]}><Plain text={c.play} size={L.portrait ? 80 : 96} rtl={rtl} /></Stand>
 
-            {/* 6 — «چیزای جالبی این تو هست.» */}
-            <Stand at={L.more} rise="more" box={[1500, 170]}><Plain text={c.more} size={L.portrait ? 110 : 100} rtl={rtl} /></Stand>
-            <Stand at={L.ask} rise="ask" box={[400, 420]} shade={L.portrait ? undefined : 300}><Solid text={rtl ? '؟' : '?'} size={L.portrait ? 300 : 340} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
-            <Stand at={L.moreNote} rise="moreNote" box={[600, 40]}><span className="li-note">{c.moreNote}</span></Stand>
-
             {/* and in: «بفرما», and the dot the camera walks into */}
             <Stand at={L.come} rise="come" box={[1300, 420]} shade={L.portrait ? undefined : 760}><Solid text={c.come} size={L.portrait ? 290 : 270} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
             {L.dots.map((d, i) => <Stand key={i} at={d} rise={`dot${i}`} box={[DOT * 2, DOT * 2]} keep><i className="li-dot" style={{ width: DOT * 2, height: DOT * 2, left: -DOT, top: -DOT * 2 }} /></Stand>)}
@@ -379,7 +372,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
         <button type="button" className="li-key li-key--sound" aria-pressed={muted} onClick={mute}>{muted ? 'SOUND OFF' : 'SOUND ON'}</button>
       </div>
 
-      {gateUp && <LanguageGate onPress={chosen} onLie={start} onGone={() => setGateUp(false)} />}
+      {phase === 'ready' && <LanguageGate onPress={chosen} onGone={start} />}
       <div className="li-red" aria-hidden="true"><i className="li-red__sheet" /></div>
     </div>
   );

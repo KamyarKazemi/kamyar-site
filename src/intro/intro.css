@@ -58,9 +58,6 @@ html:has(.li) { overflow: hidden; }
 
 /* while the language is being chosen the gate is the whole screen */
 .li.is-ready .li-deck, .li.is-ready .li-hud, .li.is-ready .li-skip { visibility: hidden; }
-/* and once it is chosen they come in after the camera has started moving, instead of popping up with the first frame */
-.li.is-running .li-deck, .li.is-running .li-hud, .li.is-running .li-skip { animation: li-in .45s .35s both; }
-@keyframes li-in { from { opacity: 0; } }
 
 @media (max-width: 640px) {
   .li-deck { gap: 6px; padding: 8px; bottom: 16px; }

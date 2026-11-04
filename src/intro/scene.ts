@@ -32,7 +32,6 @@ export interface Layout {
   portfolio: Place; portfolioNote: Place; works: Place[];
   mat: Place; heart: Place; matNote: Place;
   board: Place; live: Place; rec: Place; liveNote: Place; play: Place;
-  more: Place; ask: Place; moreNote: Place;
   come: Place; dots: Place[];
   route: [number, number][];
 }
@@ -69,9 +68,6 @@ export function layout(portrait: boolean): Layout {
     rec: { x: 300 * s, z: -7010, y: -150, ry: 8, ...(portrait ? { x: 210, y: -95, z: -7280, ry: 0 } : {}) },
     liveNote: { x: -170, z: -6960, y: -290, ry: 6, ...(portrait ? { x: 0, y: -640, z: -7245, ry: 0 } : {}) },
     play: { x: 0, z: portrait ? -6700 : -7310, y: portrait ? 0 : -470 },
-    more: { x: 0, z: -8500, y: portrait ? -60 : 0 },
-    ask: { x: (portrait ? 0 : 520) * s, z: -8620, y: portrait ? -330 : 0, ry: -10 },
-    moreNote: { x: 0, z: -8510, y: portrait ? -260 : -180 },
     come: { x: 60 * s, z: -9800, ry: 4 },
     dots: [0, 1, 2].map((i) => ({ x: (portrait ? -330 : -440) - i * 70 * s, z: -9780, y: -70, ry: 4 })),
     route: [[0, 600], [0, -900], [-90 * s, -1600], [-60 * s, -2400], [120 * s, -3400], [-40 * s, -4100], [60 * s, -5200], [-80 * s, -6200], [100 * s, -7000], [-60 * s, -8000], [60 * s, -9000], [0, -9800]],
@@ -114,7 +110,7 @@ export interface Cue { t: number; hit: Hit; level?: number }
  *   6.02  «این پورتفولیوی منه…» — his real work stands up print by print
  *  11.24  «…وارد وب‌سایت بشی» — the doormat unrolls · 13.34 «خوشت بیاد» — a red heart lands on it
  *  14.20  «آه، راستی!» — the camera whips round · 16.38 «زنده» — the board, «زنده‌ست», REC · 17.94 «باهاش بازی کنی» — its playhead runs
- *  19.10  «چیزای جالبی این تو هست» — the line and a big question mark · then «بفرما» and the dive into the last red dot
+ *  19.10  his voice has ended — «بفرما», three dots, and the dive into the last red dot
  */
 export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard: (sag: number, head: number, drop: number) => void): { tl: gsap.core.Timeline; cues: Cue[] } {
   const q = <T extends Element = HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
@@ -216,26 +212,18 @@ export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard:
   tl.to(cam, { z: L.board.z + L.dist * boardBack - 140, duration: 3.4, ease: 'sine.inOut' }, 14.9);
   breathe('live', 16.9, 18.9, 1.2);
 
-  // 6 — «چیزای جالبی این تو هست.» — the line, and a big question mark that leans in
-  tl.to(cam, { ...at(L.more, L.dist * (L.portrait ? 1.05 : 1.15)), rx: -3, ry: 0, duration: 0.7, ease: 'power3.inOut' }, 18.75);
-  cue(18.75, 'whoosh', 0.45);
-  up('more', 19.1, 'thud', 0.45);
-  up('ask', 19.5, 'pop', 0.5);
-  note('moreNote', 19.8);
-  breathe('ask', 19.9, 20.9, 2);
-
-  // and in: «بفرما», three dots, and the camera walks into the last one
-  tl.to(cam, { ...at(L.come, L.dist + 80), rx: -3, ry: -2, duration: 0.9, ease: 'power3.inOut' }, 20.7);
-  cue(20.7, 'whoosh', 0.5);
-  up('come', 21.25, 'thud', 0.5);
-  L.dots.forEach((_, i) => up(`dot${i}`, 21.5 + i * 0.16, 'pop', 0.25));
+  // and in, right after his last word: «بفرما», three dots, and the camera walks into the last one
+  tl.to(cam, { ...at(L.come, L.dist + 80), rx: -3, ry: -2, duration: 0.9, ease: 'power3.inOut' }, 19.1);
+  cue(19.1, 'whoosh', 0.5);
+  up('come', 19.65, 'thud', 0.5);
+  L.dots.forEach((_, i) => up(`dot${i}`, 19.9 + i * 0.16, 'pop', 0.25));
   const last = L.dots[2]!;
-  tl.to(cam, { x: last.x, y: (last.y ?? 0) - DOT, z: last.z + 24, rx: 0, ry: -last.ry!, duration: 1.3, ease: 'power3.in' }, 22.0);
-  cue(22.0, 'whoosh', 0.8);
-  tl.fromTo(q('.li-red'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 23.3 - 0.08);
+  tl.to(cam, { x: last.x, y: (last.y ?? 0) - DOT, z: last.z + 24, rx: 0, ry: -last.ry!, duration: 1.3, ease: 'power3.in' }, 20.4);
+  cue(20.4, 'whoosh', 0.8);
+  tl.fromTo(q('.li-red'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 21.7 - 0.08);
 
   cues.sort((x, y) => x.t - y.t);
-  tl.set({}, {}, 23.3);
+  tl.set({}, {}, 21.7);
   // run it once through and back, so every piece starts in its first state before the tape moves
   tl.progress(1, true).progress(0, true);
   redraw();

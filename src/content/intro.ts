@@ -13,8 +13,6 @@ interface IntroCopy {
   live: string;
   liveNote: string;
   play: string;
-  more: string;
-  moreNote: string;
   come: string;
   skip: string;
   rewind: string;
@@ -41,8 +39,6 @@ export const intro: Record<Lang, IntroCopy> = {
     live: 'زنده‌ست',
     liveNote: '05 — A LIVE TIMELINE',
     play: 'باهاش بازی کن',
-    more: 'چیزای جالبی این توئه…',
-    moreNote: '06 — LOOK AROUND',
     come: 'بفرما',
     skip: 'برو به سایت',
     rewind: 'عقب',
@@ -67,8 +63,6 @@ export const intro: Record<Lang, IntroCopy> = {
     live: "It's live",
     liveNote: '05 — A LIVE TIMELINE',
     play: 'Play with it',
-    more: "There's more in here…",
-    moreNote: '06 — LOOK AROUND',
     come: 'Come in',
     skip: 'Skip to the site',
     rewind: 'Rewind',
