@@ -1,11 +1,25 @@
+import type { Groan, Reaction } from '../content/intro';
+
 /**
- * The greeting's sound: real paper and air from the sound library (public/live/sfx, credited there), each also turned round so it
- * plays backwards when the tape rewinds, a quiet room under everything, and the whir of a tape spooling, made in the browser.
+ * The greeting's sound. His voice is the tape itself: it plays in step with the playhead, backwards when the tape rewinds, higher and
+ * faster when it runs fast, and stops when it stops. Over it, his reactions (the timeline's broken-speaker voice), real paper and air
+ * from the sound library (public/live/sfx, credited there), each also turned round to play backwards, a quiet room under everything,
+ * and the whir of a tape spooling, made in the browser.
  */
-export type Hit = 'pop' | 'thud' | 'whoosh' | 'flip' | 'rustle' | 'glitch' | 'type';
-const HITS: Hit[] = ['pop', 'thud', 'whoosh', 'flip', 'rustle', 'glitch', 'type'];
+export type Hit = 'pop' | 'thud' | 'whoosh' | 'flip' | 'rustle' | 'glitch' | 'type' | 'sparkle';
+const HITS: Hit[] = ['pop', 'thud', 'whoosh', 'flip', 'rustle', 'glitch', 'type', 'sparkle'];
+const LINES: (Reaction | Groan)[] = ['rewind1', 'rewind2', 'forward', 'idle', 'start', 'told', 'tiredBack', 'tiredForward'];
+// the voice is put back in step when it has drifted this far from the playhead (seconds)
+const DRIFT = 0.12;
 
 const lehmer = (seed: number) => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647 * 2 - 1; };
+const reversed = (ctx: AudioContext, buf: AudioBuffer) => {
+  const back = ctx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+  for (let c = 0; c < buf.numberOfChannels; c++) back.copyToChannel(buf.getChannelData(c).slice().reverse(), c);
+  return back;
+};
+
+interface Playing { node: AudioBufferSourceNode; gain: GainNode; dir: 1 | -1; at: number; from: number; rate: number }
 
 export class TapeSound {
   private ctx: AudioContext;
@@ -13,6 +27,9 @@ export class TapeSound {
   private bank = new Map<string, AudioBuffer>();
   private whir: { gain: GainNode; band: BiquadFilterNode };
   private room: GainNode;
+  private voice: [AudioBuffer, AudioBuffer] | null = null;
+  private speaking: Playing | null = null;
+  private line: AudioBufferSourceNode | null = null;
 
   constructor() {
     this.ctx = new AudioContext();
@@ -39,21 +56,24 @@ export class TapeSound {
     void this.load();
   }
 
-  // every sound forwards and backwards; the room tone loops under the whole greeting
+  // every sound forwards and backwards, his voice both ways, his reactions; the room tone loops under the whole greeting
   private async load(): Promise<void> {
-    const get = async (name: string) => this.ctx.decodeAudioData(await (await fetch(`/live/sfx/${name}.mp3`)).arrayBuffer());
-    await Promise.all(HITS.map(async (hit) => {
-      const buf = await get(hit), back = this.ctx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
-      for (let c = 0; c < buf.numberOfChannels; c++) back.copyToChannel(buf.getChannelData(c).slice().reverse(), c);
-      this.bank.set(`${hit}>`, buf);
-      this.bank.set(`${hit}<`, back);
-    }));
+    const get = async (path: string) => this.ctx.decodeAudioData(await (await fetch(path)).arrayBuffer());
+    await Promise.all([
+      ...HITS.map(async (hit) => {
+        const buf = await get(`/live/sfx/${hit}.mp3`);
+        this.bank.set(`${hit}>`, buf);
+        this.bank.set(`${hit}<`, reversed(this.ctx, buf));
+      }),
+      ...LINES.map(async (line) => { this.bank.set(`say:${line}`, await get(`/live/voice/${line}.mp3`)); }),
+      (async () => { const v = await get('/live/voice/greeting.mp3'); this.voice = [v, reversed(this.ctx, v)]; })(),
+    ]);
     const room = this.ctx.createBufferSource();
-    room.buffer = await get('room');
+    room.buffer = await get('/live/sfx/room.mp3');
     room.loop = true;
     room.connect(this.room);
     room.start();
-    this.room.gain.setTargetAtTime(0.5, this.ctx.currentTime, 0.8);
+    this.room.gain.setTargetAtTime(0.4, this.ctx.currentTime, 0.8);
   }
 
   /** Browsers only allow sound after a tap; the language gate is that tap. */
@@ -71,17 +91,64 @@ export class TapeSound {
     src.start();
   }
 
+  /** One of his reactions; a new one cuts off the one before, so he never talks over himself. */
+  say(line: Reaction | Groan): void {
+    const buf = this.bank.get(`say:${line}`);
+    if (!buf) return;
+    this.line?.stop();
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(this.out);
+    src.start();
+    this.line = src;
+  }
+
+  /**
+   * Keeps his voice in step with the tape: where the playhead is (seconds) and how fast it moves, signed. A tape that stands still is
+   * silent; one running backwards plays the voice backwards from the same moment; a jump or a change of direction starts it again there.
+   */
+  voiceAt(time: number, rate: number): void {
+    if (!this.voice) return;
+    const now = this.ctx.currentTime, speed = Math.abs(rate), dir: 1 | -1 = rate < 0 ? -1 : 1, length = this.voice[0].duration;
+    const pace = Math.min(4, Math.max(0.25, speed));
+    let p = this.speaking;
+    if (p) {
+      const at = p.from + p.dir * (now - p.at) * p.rate;
+      if (speed < 0.08 || time >= length || p.dir !== dir || Math.abs(at - time) > DRIFT) { this.hush(); p = null; }
+      else if (Math.abs(p.rate - pace) > 0.01) { Object.assign(p, { from: at, at: now, rate: pace }); p.node.playbackRate.setValueAtTime(pace, now); }
+    }
+    if (p || speed < 0.08 || time >= length - 0.02) return;
+    const node = this.ctx.createBufferSource(), gain = this.ctx.createGain();
+    node.buffer = this.voice[dir > 0 ? 0 : 1];
+    node.playbackRate.value = pace;
+    // a few milliseconds in, so starting mid-word never clicks
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(1, now + 0.012);
+    node.connect(gain).connect(this.out);
+    node.start(now, dir > 0 ? time : Math.max(0, length - time));
+    this.speaking = { node, gain, dir, at: now, from: time, rate: pace };
+  }
+
+  private hush(): void {
+    const p = this.speaking;
+    if (!p) return;
+    const now = this.ctx.currentTime;
+    p.gain.gain.setTargetAtTime(0, now, 0.01);
+    p.node.stop(now + 0.06);
+    this.speaking = null;
+  }
+
   /** How fast the tape is moving, signed; 1 is normal play. A tired tape groans: the spool drops low. */
   spool(rate: number, tired = false): void {
     const off = Math.abs(rate - 1) < 0.05 || Math.abs(rate) < 0.05, now = this.ctx.currentTime;
-    this.whir.gain.gain.setTargetAtTime(off ? 0 : Math.min(0.35, 0.08 + Math.abs(rate) * 0.07), now, 0.04);
+    this.whir.gain.gain.setTargetAtTime(off ? 0 : Math.min(0.3, 0.06 + Math.abs(rate) * 0.06), now, 0.04);
     this.whir.band.frequency.setTargetAtTime(tired ? 140 + Math.abs(rate) * 120 : 300 + Math.abs(rate) * 650, now, 0.05);
   }
 
   muted(on: boolean): void { this.out.gain.setTargetAtTime(on ? 0 : 0.9, this.ctx.currentTime, 0.05); }
 
-  /** The room fades out as the greeting hands over to the site. */
-  fade(): void { this.room.gain.setTargetAtTime(0, this.ctx.currentTime, 0.4); }
+  /** The room fades out and the voice stops as the greeting hands over to the site. */
+  fade(): void { this.room.gain.setTargetAtTime(0, this.ctx.currentTime, 0.4); this.hush(); }
 
   close(): void { void this.ctx.close(); }
 }

@@ -170,3 +170,20 @@ html:has(.li) { overflow: hidden; }
 
 /* a phone's floor and route, drawn flat on one canvas behind the stations */
 .li-ground { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* ───────── the rebuilt greeting ───────── */
+/* his work in the portfolio station: prints on paper with a red block behind, like the site's */
+.li-work { position: absolute; left: -160px; bottom: 0; width: 320px; padding: 10px; background: var(--paper); box-shadow: 10px 12px 0 var(--red); }
+.li-work img { display: block; width: 100%; max-width: none; height: auto; }
+.li-heart { position: absolute; overflow: visible; filter: drop-shadow(5px 6px 0 var(--ink)); }
+/* the secret: a line painted in red on the floor, mirrored, so passing over it reads as scribble; found, it turns the right way */
+.li-secret p { position: absolute; left: -760px; top: -70px; width: 1520px; margin: 0; text-align: center; font: 400 92px/1.2 var(--display); color: rgb(206 38 30 / .82); }
+.li-secret:lang(en) p, .li-secret p:lang(en) { font-size: 84px; }
+.li-secret span { display: inline-block; transform: scaleX(-1); }
+.li-secret.is-found span { transform: none; }
+/* found: a red rubber stamp across the screen, and a burst of red paper */
+.li-found { position: absolute; z-index: 6; top: 30%; left: 50%; translate: -50% -50%; padding: .05em .45em .12em; border: 7px solid var(--red); color: var(--red); background: rgb(246 243 236 / .82); font: 400 clamp(56px, 9vw, 120px)/1.1 var(--display); white-space: nowrap; visibility: hidden; pointer-events: none; }
+.li-burst { position: absolute; inset: 0; z-index: 6; overflow: hidden; pointer-events: none; }
+.li-bit { position: absolute; left: 0; top: 0; width: 16px; height: 12px; margin: -6px 0 0 -8px; background: var(--red) url('/tex/ink-red.webp') 0 0 / 128px; clip-path: polygon(0 10%, 100% 0, 88% 100%, 8% 86%); }
+.li-bit:nth-child(4n) { background: var(--paper); }
+.li-bit.is-heart { width: 26px; height: 24px; margin: -12px 0 0 -13px; background: var(--red); clip-path: path('M13 23 C5 17 1 12 1 7 C1 3 4 1 7 1 C10 1 12 3 13 5 C14 3 16 1 19 1 C22 1 25 3 25 7 C25 12 21 17 13 23Z'); }

@@ -1,24 +1,29 @@
 import type { Lang } from './site';
 
-/** What Kamyar reacts to, in his own voice; until he records them the line is typed on a label. Script: work/greeting-script.md */
+/** What the timeline reacts to, in his own (glitched) voice. Words below are what he says in the recording, work/voice/transcript.md */
 export type Reaction = 'rewind1' | 'rewind2' | 'forward' | 'idle' | 'dizzy' | 'start' | 'told';
-/** What the timeline itself says when it has been pushed too hard. These are written, never spoken. */
+/** The timeline's complaints when it has been pushed too hard; his voice too. */
 export type Groan = 'tiredBack' | 'tiredForward';
 
 interface IntroCopy {
-  /** the six stations of the greeting, one per spoken line */
+  /** the stations, one for each thing he says */
   hi: string;
+  name: string;
   hiNote: string;
+  roles: { word: string; note: string; print: string }[];
+  portfolio: string;
+  portfolioNote: string;
   welcome: string;
   welcomeNote: string;
   live: string;
   liveNote: string;
-  yours: string;
-  yoursNote: string;
-  tires: string;
-  tiresNote: string;
+  play: string;
+  more: string;
+  moreNote: string;
   come: string;
-  comeNote: string;
+  /** the secret: written backwards on the floor, and the right way round once it is found by rewinding over it */
+  secret: string;
+  found: string;
   skip: string;
   rewind: string;
   forward: string;
@@ -29,21 +34,28 @@ interface IntroCopy {
   groans: Record<Groan, string>;
 }
 
-// draft 1 of the greeting; the spoken lines are rewritten to what he actually says once he has recorded them
 export const intro: Record<Lang, IntroCopy> = {
   fa: {
     hi: 'سلام!',
-    hiNote: '01 — HI.',
+    name: 'کامیار',
+    hiNote: "01 — HI, I'M KAMYAR",
+    roles: [
+      { word: 'ادیتور', note: 'EDITOR.', print: '/live/editor.webp' },
+      { word: 'فرانت‌اند', note: 'FRONT-END DEV.', print: '/live/developer.webp' },
+      { word: 'موشن', note: 'MOTION DESIGNER.', print: '/live/motion.webp' },
+    ],
+    portfolio: 'پورتفولیوی من',
+    portfolioNote: '03 — MY PORTFOLIO',
     welcome: 'خوش اومدی',
-    welcomeNote: '02 — WELCOME',
+    welcomeNote: '04 — COME ON IN',
     live: 'زنده‌ست',
-    liveNote: '03 — LIVE · NOT A VIDEO',
-    yours: 'تایم‌لاین دست خودته',
-    yoursNote: '04 — THE TIMELINE IS YOURS',
-    tires: 'زود خسته می‌شه',
-    tiresNote: '05 — IT GETS TIRED',
+    liveNote: '05 — A LIVE TIMELINE',
+    play: 'باهاش بازی کن',
+    more: 'چیزای جالبی این توئه…',
+    moreNote: '06 — LOOK AROUND',
     come: 'بفرما',
-    comeNote: '06 — COME ON IN',
+    secret: 'پیدام کردی! حالا این یه راز بین من و توئه.',
+    found: 'پیدا شد!',
     skip: 'برو به سایت',
     rewind: 'عقب',
     forward: 'جلو',
@@ -51,32 +63,40 @@ export const intro: Record<Lang, IntroCopy> = {
     resume: 'ادامه',
     scrub: 'بکشش عقب و جلو',
     reactions: {
-      rewind1: 'عه! داری برمی‌گردی؟',
-      rewind2: 'باز؟ باشه.',
+      rewind1: 'اِ، برگشتی که؟',
+      rewind2: 'بازم؟ خب باشه.',
       forward: 'عجله داری؟',
-      idle: 'هنوز اونجایی؟',
+      idle: 'هنوزم اونجایی؟',
       dizzy: 'آروم… سرم گیج رفت.',
-      start: 'از اول؟ باشه.',
-      told: 'دیدی گفتم؟',
+      start: 'از اول؟ … باشه.',
+      told: 'دیدی گفتم تایم‌لاین خسته می‌شه؟',
     },
     groans: {
-      tiredBack: 'اوف… بسه دیگه، کمرم گرفت.',
-      tiredForward: 'یواش! نفسم بند اومد.',
+      tiredBack: 'باشه بابا، کمرِ تایم‌لاینو شکوندی.',
+      tiredForward: 'بسه دیگه!',
     },
   },
   en: {
     hi: 'Hi!',
-    hiNote: '01 — سلام',
+    name: 'Kamyar',
+    hiNote: '01 — سلام، من کامیارم',
+    roles: [
+      { word: 'Editor', note: 'ادیتور', print: '/live/editor.webp' },
+      { word: 'Front-end', note: 'فرانت‌اند', print: '/live/developer.webp' },
+      { word: 'Motion', note: 'موشن دیزاینر', print: '/live/motion.webp' },
+    ],
+    portfolio: 'My portfolio',
+    portfolioNote: '03 — پورتفولیوی من',
     welcome: 'Welcome',
-    welcomeNote: '02 — خوش اومدی',
+    welcomeNote: '04 — COME ON IN',
     live: "It's live",
-    liveNote: '03 — LIVE · NOT A VIDEO',
-    yours: "The timeline's yours",
-    yoursNote: '04 — THE TIMELINE IS YOURS',
-    tires: 'It gets tired',
-    tiresNote: '05 — زود خسته می‌شه',
+    liveNote: '05 — A LIVE TIMELINE',
+    play: 'Play with it',
+    more: "There's more in here…",
+    moreNote: '06 — LOOK AROUND',
     come: 'Come in',
-    comeNote: '06 — بفرما',
+    secret: "You found me! Now it's our little secret.",
+    found: 'FOUND IT!',
     skip: 'Skip to the site',
     rewind: 'Rewind',
     forward: 'Forward',
@@ -84,17 +104,17 @@ export const intro: Record<Lang, IntroCopy> = {
     resume: 'Play',
     scrub: 'Drag it back and forth',
     reactions: {
-      rewind1: 'Oh! Going back?',
-      rewind2: 'Again? Sure.',
+      rewind1: 'Oh, you came back?',
+      rewind2: 'Again? Fine.',
       forward: 'In a hurry?',
       idle: 'Still there?',
       dizzy: "Easy… my head's spinning.",
-      start: 'From the top? Okay.',
-      told: 'Told you.',
+      start: 'From the top? … Fine.',
+      told: 'Told you the timeline gets tired.',
     },
     groans: {
-      tiredBack: "Ugh… enough, my back's gone.",
-      tiredForward: "Slow down! I'm out of breath.",
+      tiredBack: "Fine, you broke the timeline's back.",
+      tiredForward: 'Enough!',
     },
   },
 };

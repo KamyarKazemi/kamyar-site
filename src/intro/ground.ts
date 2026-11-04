@@ -1,11 +1,11 @@
-import type { Camera } from './scene';
+import { FLOOR_END, type Camera } from './scene';
 
 /**
  * The floor and the red route on a phone, drawn flat on one canvas the size of the screen instead of as 3D planes. A phone's graphics
  * memory cannot hold the floor's big 3D tiles at its pixel density: it starts dropping layers, and titles vanish mid-greeting. The
  * canvas projects every line through the same camera the 3D world uses, so the stations still stand exactly on it.
  */
-const GRID = 160, FAR = -7300, NEAR = 30, SIDE = 2400;
+const GRID = 160, FAR = FLOOR_END - 100, NEAR = 30, SIDE = 2400;
 const LINE = 'rgba(24, 22, 20, 0.26)', FLOOR = '#dcd8cf', RED = '#ce261e';
 
 interface View { width: number; height: number; scale: number; perspective: number }

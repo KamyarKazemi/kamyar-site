@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { intro, type Groan, type Reaction } from '../content/intro';
 import { gsap } from '../lib/gsap';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +6,7 @@ import type { Lang } from '../content/site';
 import { pathFor, useLanguage } from '../lib/language';
 import { LanguageGate } from './LanguageGate';
 import { jag, POSE, stepped } from '../lib/paper';
-import { BOARD, boardPaths, buildScene, DOT, drift, EYE, layout, lens, place, segment, type Camera, type Layout } from './scene';
+import { BOARD, boardPaths, buildScene, DOT, drift, EYE, FLOOR_END, layout, lens, place, SECRET_AT, segment, type Camera, type Layout } from './scene';
 import { drawGround } from './ground';
 import { TapeSound } from './sound';
 import { Tape, type TapeEvent } from './tape';
@@ -14,6 +14,10 @@ import './intro.css';
 import { sfx, sfxOff } from '../lib/sfx';
 
 const PERSPECTIVE = 1100;
+// his work, the prints in the portfolio station
+const WORKS = ['cafe', 'intro', 'toolbox', 'okala'] as const;
+const FOUND = 'kk-secret';
+const wasFound = () => { try { return localStorage.getItem(FOUND) === '1'; } catch { return false; } };
 // the hand-off: the red holds this long, then the hole opens over this many paper poses
 const HOLD = 0.35, OPEN = 14;
 const INK = '#181614', RED = '#ce261e', PAPER = '#f6f3ec', SIDE = '#2b2420';
@@ -53,9 +57,9 @@ function Plain({ text, size, rtl }: { text: string; size: number; rtl: boolean }
  * A thing standing on the floor at a place; it lies flat until the timeline raises it. The rising part needs a real box the size of
  * what it holds: Chrome draws a 3D layer only inside its own bounds, so an empty box with its picture overflowing it shows nothing.
  */
-function Stand({ at, rise, box: [w, h], keep, shade, children }: { at: Parameters<typeof place>[0]; rise: string; box: [number, number]; keep?: boolean; shade?: number | undefined; children: ReactNode }) {
+function Stand({ at, rise, box: [w, h], keep, near, shade, children }: { at: Parameters<typeof place>[0]; rise: string; box: [number, number]; keep?: boolean; near?: number | undefined; shade?: number | undefined; children: ReactNode }) {
   return (
-    <div className="li-at" data-z={at.z} data-keep={keep ? '' : undefined} style={{ transform: place(at) }}>
+    <div className="li-at" data-z={at.z} data-keep={keep ? '' : undefined} data-near={near} style={{ transform: place(at) }}>
       {/* its shadow on the floor, spreading as it stands up */}
       {shade && <i className="li-shade-at" style={{ top: -(at.y ?? 0) }}><i className="li-shade" style={{ width: shade, height: shade * 0.34, left: -shade / 2, top: -shade * 0.17 }} /></i>}
       <div className="li-rise" data-rise={rise} style={{ left: -w / 2, top: -h, width: w, height: h }}><div className="li-anchor" style={{ left: w / 2, top: h }}>{children}</div></div>
@@ -104,6 +108,43 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   const [muted, setMuted] = useState(false);
   const [said, setSaid] = useState<{ key: Reaction; n: number } | null>(null);
   const [groan, setGroan] = useState<Groan | null>(null);
+  // the secret: found once (in this visit or an earlier one), it stays the right way round
+  const [found, setFound] = useState(wasFound);
+  const [cheer, setCheer] = useState(0);
+  const findSecret = useRef<() => void>(() => {});
+  findSecret.current = () => {
+    if (found) return;
+    setFound(true);
+    setCheer((n) => n + 1);
+    try { localStorage.setItem(FOUND, '1'); } catch { /* private window: it is a secret again next time */ }
+    sound.current?.play('sparkle', false, 1, 1);
+    sound.current?.play('thud', false, 1, 0.6);
+  };
+
+  // found: the backwards line turns the right way round, a stamp comes down on the screen, and red paper hearts and scraps burst out
+  useEffect(() => {
+    const el = root.current;
+    if (!cheer || !el) return;
+    const line = el.querySelector('.li-secret span'), stamp = el.querySelector('.li-found'), layer = el.querySelector<HTMLElement>('.li-burst')!;
+    const tl = gsap.timeline()
+      .fromTo(line, { scaleX: -1 }, { scaleX: 1, duration: 0.55, ease: stepped('back.out(2)', 7) }, 0)
+      .set(stamp, { autoAlpha: 1 }, 0.05)
+      .fromTo(stamp, { scale: 2.4, rotation: -22 }, { scale: 1, rotation: -6, duration: 0.2, ease: 'power4.in' }, 0.05)
+      .fromTo(stamp, { x: 0 }, { keyframes: { x: [6, -4, 2, 0] }, duration: 0.25, ease: 'steps(4)' }, 0.25)
+      .to(stamp, { autoAlpha: 0, scale: 0.9, duration: 0.35, ease: 'power2.in' }, 2.6);
+    const r = gsap.utils.random, W = innerWidth, H = innerHeight;
+    for (let i = 0; i < 34; i++) {
+      const bit = document.createElement('i');
+      bit.className = i % 3 ? 'li-bit' : 'li-bit is-heart';
+      layer.append(bit);
+      const up = r(0.18, 0.42) * H, side = r(-0.48, 0.48) * W;
+      tl.fromTo(bit, { x: W / 2, y: H * 0.42, scale: r(0.6, 1.2), rotation: r(-40, 40), autoAlpha: 1 },
+        { keyframes: { x: [W / 2 + side * 0.6, W / 2 + side], y: [H * 0.42 - up, H * 0.42 - up * 0.2 + r(0.3, 0.6) * H], easeEach: 'power1.inOut' },
+          rotation: `+=${r(-280, 280)}`, duration: r(1.4, 2.2), ease: 'none', onComplete: () => bit.remove() }, r(0, 0.12))
+        .to(bit, { autoAlpha: 0, duration: 0.4 }, '>-0.4');
+    }
+    return () => { tl.kill(); layer.replaceChildren(); };
+  }, [cheer]);
   const board = useRef<Record<string, SVGElement | null>>({});
 
   // the world is drawn at the scale that covers the screen
@@ -134,8 +175,11 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
     };
     const { tl, cues } = buildScene(el, L, cam, drawBoard);
     const stations = [...el.querySelectorAll<HTMLElement>('.li-at')].map((at) => ({ at, z: Number(at.dataset.z), near: at.dataset.near ? Number(at.dataset.near) : null, keep: 'keep' in at.dataset, face: at.querySelector<HTMLElement>('.li-anchor') }));
+    let last = 0;
     const frame = (time: number, rate: number) => {
       if (!camEl.current) return;
+      if (time < SECRET_AT && last >= SECRET_AT && rate < -0.15) findSecret.current();
+      last = time;
       // the hand holding the camera never stops; off normal speed it shakes, more the faster the tape runs
       const off = Math.abs(rate - 1), shake = off > 0.3 && Math.abs(rate) > 0.05 ? Math.min(7, off * 2) : 0, h = drift(time, shake);
       const eye = { x: cam.x + h.x, y: cam.y + h.y, z: cam.z, rx: cam.rx + h.rx, ry: cam.ry + h.ry };
@@ -144,7 +188,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
       if (g) {
         const stretches = L.route.length - 1;
         drawGround(g, { width: innerWidth, height: innerHeight, scale: Math.max(innerWidth / L.width, innerHeight / L.height), perspective: PERSPECTIVE }, eye, L.route,
-          (i) => Math.min(1, Math.max(0, (time - (i / stretches) * 13) / 1.4)));
+          (i) => Math.min(1, Math.max(0, (time - (i / stretches) * 20) / 1.4)));
       }
       // only what is near the camera is drawn: Chrome drops 3D layers past its budget, and far things are lost in the distance anyway.
       // On a phone the camera walks right past earlier pieces, so those are put away before they fill the lens; the dots are what it
@@ -170,6 +214,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
     };
     const event = (e: TapeEvent) => {
       if (e === 'end') { setPhase('leaving'); return; }
+      if (e !== 'dizzy') sound.current?.say(e);
       if (e === 'tiredBack' || e === 'tiredForward') { setGroan(e); return; }
       setSaid((s) => ({ key: e, n: (s?.n ?? 0) + 1 }));
     };
@@ -284,10 +329,13 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   });
 
   const fx = useRef<HTMLSpanElement>(null);
+  // the board and its words fade at their own distances: close enough that they stand solid while the camera looks at them, far
+  // enough that it does not walk through a ghost of them on its way to the next station (on a phone it stops just short of them)
+  const near = L.portrait ? { board: 800, words: 800, play: 250 } : { board: 500, words: 150, play: 500 };
   const tiles = useMemo(() => {
     const out: { x: number; z: number }[] = [];
     const [from, to] = L.portrait ? [-1600, 1600] : [-2400, 2400];
-    for (let x = from; x < to; x += 1600) for (let z = -7200; z < 1600; z += 1600) out.push({ x, z });
+    for (let x = from; x < to; x += 1600) for (let z = FLOOR_END; z < 1600; z += 1600) out.push({ x, z });
     return out;
   }, [L]);
 
@@ -305,43 +353,65 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
               </div>
             )}
 
-            {/* 1 — سلام! */}
+            {/* 1 — «سلام. … من کامیار هستم.» */}
             <Stand at={L.hi} rise="hi" box={[1500, 440]} shade={L.portrait ? undefined : 900}><Solid text={c.hi} size={L.portrait ? 300 : 280} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
+            <Stand at={L.name} rise="name" box={[1500, 440]} shade={L.portrait ? undefined : 820}><Solid text={c.name} size={L.portrait ? 290 : 250} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
             <Stand at={L.me} rise="me" box={[405, 651]} shade={L.portrait ? undefined : 360}><img className="li-print" src="/live/me.webp" alt="" style={{ width: 405, left: -202, top: -651 }} /></Stand>
-            <Stand at={L.hiNote} rise="hiNote" box={[600, 40]}><span className="li-note">{c.hiNote}</span></Stand>
+            <Stand at={L.hiNote} rise="hiNote" box={[700, 40]}><span className="li-note">{c.hiNote}</span></Stand>
 
-            {/* 2 — خوش اومدی: a paper doormat lying on the floor */}
+            {/* 2 — «ادیتور، فرانت‌اند دولوپر و موشن دیزاینر.» */}
+            {/* side by side they are read in the language's direction, so in Persian the first role stands on the right */}
+            {L.roles.map((_, i) => L.roles[rtl && !L.portrait ? L.roles.length - 1 - i : i]!).map((r, i) => (
+              <Fragment key={i}>
+                <Stand at={r} rise={`role${i}`} box={[1300, 340]} shade={L.portrait ? undefined : 640}><Solid text={c.roles[i]!.word} size={L.portrait ? 210 : rtl ? 170 : 118} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
+                {r.print && <Stand at={r.print} rise={`print${i}`} box={[300, 220]}><img className="li-print" src={c.roles[i]!.print} alt="" style={{ width: 300, left: -150, top: -220 }} /></Stand>}
+                <Stand at={r.note} rise={`rnote${i}`} box={[600, 40]}><span className="li-note">{c.roles[i]!.note}</span></Stand>
+              </Fragment>
+            ))}
+
+            {/* 3 — «این پورتفولیوی منه…»: his real work stands up, and the secret lies written backwards on the floor before it */}
+            <Stand at={L.portfolio} rise="portfolio" box={[1300, 170]}><Plain text={c.portfolio} size={L.portrait ? 130 : 110} rtl={rtl} /></Stand>
+            <Stand at={L.portfolioNote} rise="portfolioNote" box={[600, 40]}><span className="li-note">{c.portfolioNote}</span></Stand>
+            {WORKS.map((w, i) => (
+              <Stand key={w} at={L.works[i]!} rise={`work${i}`} box={[320, 560]} shade={L.portrait ? undefined : 300}><span className="li-work"><img src={`/work/${w}.webp`} alt="" /></span></Stand>
+            ))}
+            <div className={`li-at li-secret${found ? ' is-found' : ''}`} data-z={L.secret.z} data-near="320" style={{ transform: place(L.secret, ' rotateX(90deg)') }}>
+              <p lang={lang} dir={rtl ? 'rtl' : 'ltr'}><span>{c.secret}</span></p>
+            </div>
+
+            {/* 4 — «حالا راحت می‌تونی وارد وب‌سایت بشی. امیدوارم که ازش خوشت بیاد.» */}
             <div className="li-at" data-z={L.mat.z} data-near="700" style={{ transform: place(L.mat, ' rotateX(90deg)') }}>
               <div className="li-mat" lang={lang}><span>{c.welcome}</span></div>
             </div>
+            <Stand at={L.heart} rise="heart" box={[160, 150]}><svg className="li-heart" viewBox="0 0 100 92" width="160" height="150" style={{ left: -80, top: -150 }} aria-hidden="true"><path d="M50 88 C20 66 4 48 4 28 C4 13 15 4 28 4 C38 4 46 10 50 18 C54 10 62 4 72 4 C85 4 96 13 96 28 C96 48 80 66 50 88Z" fill="#ce261e" stroke="#181614" strokeWidth="5" strokeLinejoin="round" /></svg></Stand>
             <Stand at={L.matNote} rise="matNote" box={[600, 40]}><span className="li-note">{c.welcomeNote}</span></Stand>
 
-            {/* 3 — زنده‌ست */}
-            <Stand at={L.liveNote} rise="liveNote" box={[700, 40]}><span className="li-note">{c.liveNote}</span></Stand>
-            <Stand at={L.live} rise="live" box={[1400, 420]} shade={L.portrait ? undefined : 800}><Solid text={c.live} size={L.portrait ? 270 : 250} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
-            <Stand at={L.rec} rise="rec" box={[220, 90]}><span className="li-rec"><i />REC</span></Stand>
+            {/* 5 — «آه، راستی! … این یه تایم‌لاین زنده‌ست. برای همین می‌تونی یکم باهاش بازی کنی.» */}
+            <Stand at={L.board} rise="board" near={near.board} box={[BOARD.w, BOARD.h]} shade={L.portrait ? undefined : 1300}><Board refs={board} /></Stand>
+            <Stand at={L.liveNote} rise="liveNote" near={near.words} box={[700, 40]}><span className="li-note">{c.liveNote}</span></Stand>
+            <Stand at={L.live} rise="live" near={near.words} box={[1400, 420]} shade={L.portrait ? undefined : 800}><Solid text={c.live} size={L.portrait ? 240 : 220} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
+            <Stand at={L.rec} rise="rec" near={near.words} box={[220, 90]}><span className="li-rec"><i />REC</span></Stand>
+            <Stand at={L.play} rise="play" near={near.play} box={[1300, 160]}><Plain text={c.play} size={L.portrait ? 80 : 96} rtl={rtl} /></Stand>
 
-            {/* 4 and 5 — the timeline is yours; it gets tired */}
-            <Stand at={L.board} rise="board" box={[BOARD.w, BOARD.h]} shade={L.portrait ? undefined : 1300}><Board refs={board} /></Stand>
-            <Stand at={L.yours} rise="yours" box={[1400, 160]}><Plain text={c.yours} size={L.portrait ? 120 : 92} rtl={rtl} /></Stand>
-            <Stand at={L.yoursNote} rise="yoursNote" box={[700, 40]}><span className="li-note">{c.yoursNote}</span></Stand>
-            <Stand at={L.tires} rise="tires" box={[1100, 150]}><Plain text={c.tires} size={L.portrait ? 110 : 84} rtl={rtl} /></Stand>
-            <Stand at={L.tiresNote} rise="tiresNote" box={[700, 40]}><span className="li-note">{c.tiresNote}</span></Stand>
+            {/* 6 — «چیزای جالبی این تو هست.» */}
+            <Stand at={L.more} rise="more" box={[1500, 170]}><Plain text={c.more} size={L.portrait ? 110 : 100} rtl={rtl} /></Stand>
+            <Stand at={L.ask} rise="ask" box={[400, 420]} shade={L.portrait ? undefined : 300}><Solid text={rtl ? '؟' : '?'} size={L.portrait ? 300 : 340} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
+            <Stand at={L.moreNote} rise="moreNote" box={[600, 40]}><span className="li-note">{c.moreNote}</span></Stand>
 
-            {/* 6 — بفرما تو, and the dot the camera walks into */}
+            {/* and in: «بفرما», and the dot the camera walks into */}
             <Stand at={L.come} rise="come" box={[1300, 420]} shade={L.portrait ? undefined : 760}><Solid text={c.come} size={L.portrait ? 290 : 270} rtl={rtl} depth={L.portrait ? 3 : 7} /></Stand>
             {L.dots.map((d, i) => <Stand key={i} at={d} rise={`dot${i}`} box={[DOT * 2, DOT * 2]} keep><i className="li-dot" style={{ width: DOT * 2, height: DOT * 2, left: -DOT, top: -DOT * 2 }} /></Stand>)}
-            <Stand at={L.comeNote} rise="comeNote" box={[600, 40]}><span className="li-note">{c.comeNote}</span></Stand>
           </div>
         </div>
       </div>
       <i className="li-grain" aria-hidden="true" />
+      <div className="li-burst" aria-hidden="true" />
+      <span className="li-found" aria-hidden="true">{c.found}</span>
       <span className="li-fx" aria-hidden="true"><i /><i /><i /><span className="li-fx__stamp" ref={fx} /></span>
       <i className="li-frame" aria-hidden="true" />
 
-      <p className={`li-say${said ? ' is-on' : ''}`} aria-live="polite">
+      <p className={`li-say${said ? ' is-on' : ''}`} data-said={said?.key} aria-live="polite">
         <span className="li-say__line" ref={line} />
-        {said && <span className="li-say__tag">VOICE · {said.key}</span>}
       </p>
 
       <span className="li-hud" ref={hud} aria-hidden="true" />

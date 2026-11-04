@@ -23,7 +23,7 @@ const pick = async (p, lang, wait = 1700) => {
   await p.waitForTimeout(wait);
 };
 const seek = (p, t) => p.evaluate((t) => { window.__tape.play(false); window.__tape.seek(t); }, t);
-const said = (p) => p.evaluate(() => document.querySelector('.li-say.is-on .li-say__tag')?.textContent ?? '');
+const said = (p) => p.evaluate(() => document.querySelector('.li-say.is-on')?.dataset.said ?? '');
 const shown = (p, rise) => p.evaluate((rise) => {
   const el = document.querySelector(`[data-rise="${rise}"]`), r = el.getBoundingClientRect();
   return getComputedStyle(el.parentElement).visibility === 'visible' && r.width > 20 && r.right > 0 && r.left < innerWidth && r.bottom > 0 && r.top < innerHeight;
@@ -36,12 +36,12 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   ok(`${tag} the gate is gone once a language is picked`, !(await p.$('.gate')));
   ok(`${tag} it plays`, await p.evaluate(() => window.__tape.time > 0.2 && window.__tape.playing));
 
-  for (const [t, rise, name] of [[1.4, 'hi', 'the hello'], [1.6, 'me', 'his print'], [6.0, 'live', 'LIVE'], [9.0, 'board', 'the timeline board'], [12.4, 'tires', 'it gets tired'], [14.6, 'come', 'come in']]) {
+  for (const [t, rise, name] of [[1.6, 'hi', 'the hello'], [3.0, 'name', 'his name'], [3.0, 'me', 'his print'], [5.3, 'role2', 'the last role'], [9.6, 'work3', 'the last work print'], [17.2, 'board', 'the timeline board'], [17.3, 'live', 'LIVE'], [20.2, 'more', 'there is more in here'], [21.9, 'come', 'come in']]) {
     await seek(p, t);
     await p.waitForTimeout(120);
     ok(`${tag} ${name} stands up and is on screen at ${t}s`, await shown(p, rise));
   }
-  if (frames) for (const t of [0.6, 1.6, 3.3, 5.0, 6.3, 8.4, 10.0, 12.6, 14.8, 15.8]) {
+  if (frames) for (const t of [1.0, 3.0, 5.2, 7.4, 9.6, 12.6, 14.4, 17.2, 18.4, 20.2, 21.9, 22.8]) {
     await seek(p, t);
     await p.waitForTimeout(150);
     await p.screenshot({ path: `shots/intro-${tag}-${String(t).replace('.', '_')}.png` });
@@ -63,8 +63,20 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
     ok(`${tag} holding → runs it forward and he notices (${await said(p)})`, (await said(p)).includes('forward'));
     await p.keyboard.up('ArrowRight');
 
+    // the secret: rewinding back over the portfolio turns the backwards line the right way round, with a stamp and a burst
+    await p.evaluate(() => localStorage.removeItem('kk-secret'));
+    await seek(p, 10.4);
+    await p.evaluate(() => window.__tape.play(true));
+    await p.keyboard.down('ArrowLeft');
+    await p.waitForTimeout(1300);
+    await p.keyboard.up('ArrowLeft');
+    await p.waitForTimeout(250);
+    const secret = await p.evaluate(() => ({ found: document.querySelector('.li-secret').classList.contains('is-found'), stamp: getComputedStyle(document.querySelector('.li-found')).visibility, bits: document.querySelectorAll('.li-bit').length, kept: localStorage.getItem('kk-secret') }));
+    ok(`${tag} rewinding over the portfolio finds the secret (stamp ${secret.stamp}, ${secret.bits} bits of paper)`, secret.found && secret.stamp === 'visible' && secret.bits > 20 && secret.kept === '1');
+    await p.waitForTimeout(2600);
+
     // pushed too hard the timeline wears out: it complains in its own words, crawls, and then he says "told you"
-    await seek(p, 14);
+    await seek(p, 21);
     await p.evaluate(() => window.__tape.play(true));
     await p.keyboard.down('ArrowLeft');
     await p.waitForTimeout(3900);
@@ -109,8 +121,8 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   const p = await open('/', { width: 1440, height: 900 });
   ok('a first visit to / opens on the language gate', await p.isVisible('.gate'));
   await pick(p, 'en');
-  const s = await p.evaluate(() => ({ path: location.pathname, lang: document.querySelector('.li')?.getAttribute('lang'), name: document.querySelector('[data-rise="hi"] text')?.textContent }));
-  ok(`picking English goes to /en and the intro is in English (${s.path}, ${s.name})`, s.path === '/en' && s.lang === 'en' && s.name === 'Hi!');
+  const s = await p.evaluate(() => ({ path: location.pathname, lang: document.querySelector('.li')?.getAttribute('lang'), name: document.querySelector('[data-rise="name"] text')?.textContent }));
+  ok(`picking English goes to /en and the intro is in English (${s.path}, ${s.name})`, s.path === '/en' && s.lang === 'en' && s.name === 'Kamyar');
   await p.context().close();
 }
 // a returning visitor goes straight to the site

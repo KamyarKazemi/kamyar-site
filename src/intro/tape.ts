@@ -83,8 +83,10 @@ export class Tape {
       this.scrubbing -= dt;
       // worn out, it only gives a little under the hand
       this.time += this.tired > 0 ? this.moved * 0.25 : this.moved;
-      // the speed the hand is moving it at, smoothed, drives the sound and the smear
-      this.rate += ((this.moved / Math.max(dt, 1e-3)) - this.rate) * 0.35;
+      // the speed the hand is moving it at, smoothed, drives the sound and the smear; capped, or a long jump on the strip
+      // leaves so much speed behind that the tape slides on past where it was put
+      const hand = Math.max(-2 * SPIN, Math.min(2 * SPIN, this.moved / Math.max(dt, 1e-3)));
+      this.rate += (hand - this.rate) * 0.35;
       const dir = Math.sign(this.moved);
       if (dir && dir !== this.lastDir) { if (this.lastDir) this.flips.push(this.clock); this.lastDir = dir; }
       this.moved = 0;
@@ -105,6 +107,8 @@ export class Tape {
       const lo = Math.min(was, this.time), hi = Math.max(was, this.time), back = span < 0;
       for (const c of this.cues) if (c.t > lo && c.t <= hi) this.sound.play(c.hit, back, Math.abs(this.rate) || 1, c.level ?? 1);
     }
+    // his voice is the tape: it follows the playhead every frame, forwards, backwards or still
+    this.sound?.voiceAt(this.time, this.time >= this.duration ? 0 : this.rate);
     // a tape standing still has nothing new to draw: the world is only redrawn when the playhead or its speed has moved
     if (span || this.rate !== this.drawnRate) {
       this.sound?.spool(this.rate, this.tired > 0);
