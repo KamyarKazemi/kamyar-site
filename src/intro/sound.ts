@@ -25,6 +25,8 @@ export class TapeSound {
   private room: GainNode;
   private voice: [AudioBuffer, AudioBuffer] | null = null;
   private speaking: Playing | null = null;
+  private awake = false;
+  private roomReady = false;
 
   constructor() {
     this.ctx = new AudioContext();
@@ -67,11 +69,19 @@ export class TapeSound {
     room.loop = true;
     room.connect(this.room);
     room.start();
-    this.room.gain.setTargetAtTime(0.4, this.ctx.currentTime, 0.8);
+    this.roomReady = true;
+    if (this.awake) this.room.gain.setTargetAtTime(0.4, this.ctx.currentTime, 0.8);
   }
 
-  /** Browsers only allow sound after a tap; the language gate is that tap. */
-  resume(): Promise<void> { return this.ctx.resume(); }
+  /**
+   * Browsers only allow sound after a tap; the language gate is that tap. The sound itself is made (and the voice decoded) before
+   * it, while the gate is up: making an AudioContext takes a phone the better part of a second, which inside the tap froze the gate.
+   */
+  resume(): Promise<void> {
+    this.awake = true;
+    if (this.roomReady) this.room.gain.setTargetAtTime(0.4, this.ctx.currentTime, 0.8);
+    return this.ctx.resume();
+  }
 
   play(hit: Hit, backwards: boolean, speed: number, level = 1): void {
     const buf = this.bank.get(`${hit}${backwards ? '<' : '>'}`);

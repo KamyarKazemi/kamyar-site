@@ -112,8 +112,12 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   await p.waitForTimeout(1200);
   const r = await p.locator('.gate__half--en .gate__in').boundingBox();
   await p.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
-  await p.waitForTimeout(420);
-  const top = await p.evaluate(() => document.querySelector('.gate__half--fa')?.getBoundingClientRect().top ?? 0);
+  // the highest the half gets while it is torn away
+  const top = await p.evaluate(() => new Promise((done) => {
+    let min = 0; const end = performance.now() + 900;
+    const look = () => { const el = document.querySelector('.gate__half--fa'); if (el) min = Math.min(min, el.getBoundingClientRect().top); if (performance.now() < end && el) requestAnimationFrame(look); else done(min); };
+    requestAnimationFrame(look);
+  }));
   ok(`phone: the Persian half is torn off upwards (${Math.round(top)}px)`, top < -60);
   await p.context().close();
 }

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { Fragment, startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { intro } from '../content/intro';
 import { gsap } from '../lib/gsap';
 import { useNavigate } from 'react-router-dom';
@@ -214,13 +214,23 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
     return () => { tl.kill(); };
   }, [opening, onReveal, onDone]);
 
+  // the sound is made while the gate is up, once its own entrance has played, so the tap only has to switch it on
+  const makeSound = () => {
+    if (sound.current) return;
+    try { sound.current = new TapeSound(); } catch { sound.current = null; }
+    if (tape.current) tape.current.sound = sound.current;
+  };
+  useEffect(() => {
+    const wait = setTimeout(() => { if ('requestIdleCallback' in window) requestIdleCallback(makeSound, { timeout: 400 }); else makeSound(); }, 1300);
+    return () => clearTimeout(wait);
+  }, []);
   // the language is chosen on the gate; the tap that chooses it is also the one that lets the browser play sound
   const chosen = (pick: Lang) => {
-    try { sound.current = new TapeSound(); void sound.current.resume(); } catch { sound.current = null; }
-    // the tape was made before the tap that allows sound; it gets its speaker now
-    if (tape.current) tape.current.sound = sound.current;
+    makeSound();
+    void sound.current?.resume();
     if (sfxOff()) { sound.current?.muted(true); setMuted(true); }
-    setPicked(pick);
+    // a different language than the address re-renders the world in it: done in slices, so the gate keeps tearing smoothly meanwhile
+    if (pick !== lang) startTransition(() => setPicked(pick));
   };
   // the tape starts as the kept half of the gate lies down, so the camera is already moving when the paper becomes the floor
   const start = () => {
@@ -280,10 +290,11 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
     return out;
   }, [L]);
 
-  return (
-    <div className={`li is-${phase}`} ref={root} lang={lang} dir={rtl ? 'rtl' : 'ltr'} role="region" aria-label={c.hi}
-      onWheel={(e) => { e.stopPropagation(); if (phase === 'running') tape.current?.scrubBy(e.deltaY * 0.004); }}>
-      <div className="li-view" onPointerDown={grab} onPointerMove={pull} onPointerUp={drop} onPointerCancel={drop}>
+  // the world is rendered once per language and left alone after that. Re-rendering it means every sticker title again, seven
+  // layers each, and that is what froze the gate in the middle of its tear when the tap, the tape starting and the gate going away
+  // each re-rendered the whole intro
+  const world = useMemo(() => (
+    <>
         {L.portrait && <canvas className="li-ground" ref={ground} aria-hidden="true" />}
         <div className="li-stage" ref={stage} style={{ width: L.width, height: L.height, perspective: PERSPECTIVE }}>
           <div className="li-cam" ref={camEl}>
@@ -341,6 +352,14 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
             {L.dots.map((d, i) => <Stand key={i} at={d} rise={`dot${i}`} box={[DOT * 2, DOT * 2]} keep><i className="li-dot" style={{ width: DOT * 2, height: DOT * 2, left: -DOT, top: -DOT * 2 }} /></Stand>)}
           </div>
         </div>
+    </>
+  ), [L, lang]);
+
+  return (
+    <div className={`li is-${phase}`} ref={root} lang={lang} dir={rtl ? 'rtl' : 'ltr'} role="region" aria-label={c.hi}
+      onWheel={(e) => { e.stopPropagation(); if (phase === 'running') tape.current?.scrubBy(e.deltaY * 0.004); }}>
+      <div className="li-view" onPointerDown={grab} onPointerMove={pull} onPointerUp={drop} onPointerCancel={drop}>
+        {world}
       </div>
       <i className="li-grain" aria-hidden="true" />
       <span className="li-fx" aria-hidden="true"><i /><i /><i /><span className="li-fx__stamp" ref={fx} /></span>
