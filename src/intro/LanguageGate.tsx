@@ -15,9 +15,10 @@ const tall = () => window.innerHeight > window.innerWidth;
  * «فارسی» on the reading side, English on the other, the hello label pinned on the seam. Each half is one big button. The half you
  * did not pick is torn away and falls; the half you kept lies down flat, and the intro starts on the floor it became.
  *
- * `onPress` runs inside the tap, so the browser lets the intro start its sound; `onGone` runs once the paper is out of the way.
+ * `onPress` runs inside the tap, so the browser lets the intro start its sound; `onLie` as the kept half starts to lie down, so the
+ * intro is already moving underneath it; `onGone` once the paper is out of the way.
  */
-export function LanguageGate({ onPress, onGone, solid = false }: { onPress: (lang: Lang) => void; onGone: (lang: Lang) => void; solid?: boolean }) {
+export function LanguageGate({ onPress, onLie, onGone, solid = false }: { onPress: (lang: Lang) => void; onLie?: (lang: Lang) => void; onGone: (lang: Lang) => void; solid?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   const [portrait, setPortrait] = useState(tall);
   const picked = useRef<Lang | null>(null);
@@ -64,7 +65,7 @@ export function LanguageGate({ onPress, onGone, solid = false }: { onPress: (lan
     onPress(lang);
     const el = root.current!;
     el.classList.add('is-picked', `is-${lang}`);
-    if (!window.matchMedia(MOTION).matches || solid) { onGone(lang); return; }
+    if (!window.matchMedia(MOTION).matches || solid) { onLie?.(lang); onGone(lang); return; }
     const kept = el.querySelectorAll(lang === 'fa' ? '.gate__half--fa' : '.gate__half--en, .gate__core'), lost = el.querySelectorAll(lang === 'fa' ? '.gate__half--en, .gate__core' : '.gate__half--fa');
     const side = lang === 'fa' ? -1 : 1;
     gsap.timeline({ onComplete: () => onGone(lang) })
@@ -73,8 +74,11 @@ export function LanguageGate({ onPress, onGone, solid = false }: { onPress: (lan
       // the kept half takes the press, the label is torn off the seam with the other half
       .fromTo(el.querySelector(`.gate__half--${lang} .gate__in`), { scale: 0.97 }, { scale: 1, duration: 3 * POSE, ease: 'steps(3)' }, 0)
       .to('.gate__label', { y: 40, rotation: side * -22, autoAlpha: 0, duration: 5 * POSE, ease: stepped('power2.in', 5) }, POSE)
-      .to(lost, { ...(portrait ? { yPercent: side * -18 } : { xPercent: side * 14 }), y: '+=140', rotation: side * 9, autoAlpha: 0, duration: 7 * POSE, ease: stepped('power2.in', 7) }, POSE)
-      // then the half you kept lies down flat: it is the floor the intro starts on
+      // the lost half is torn off away from the seam: sideways and falling on a wide screen; on a phone the top half goes up and off,
+      // the bottom half drops
+      .to(lost, { ...(portrait ? { yPercent: side * -34 } : { xPercent: side * 14, y: '+=140' }), rotation: side * 9, autoAlpha: 0, duration: 7 * POSE, ease: stepped('power2.in', 7) }, POSE)
+      // then the half you kept lies down flat: it is the floor the intro starts on, and the intro starts moving under it
+      .call(() => onLie?.(lang), [], 7 * POSE)
       .to(kept, { rotationX: 82, transformPerspective: 1200, transformOrigin: '50% 100%', autoAlpha: 0, duration: 8 * POSE, ease: stepped('power2.in', 8) }, 7 * POSE);
   };
 

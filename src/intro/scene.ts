@@ -19,8 +19,6 @@ export const DOT = 40;
 export const BOARD = { w: 1300, h: 300, top: 40, bottom: 200, legs: [130, 1170] } as const;
 /** How far down the route the floor goes. */
 export const FLOOR_END = -10400;
-/** Where the secret lies, and the moment the camera passes over it: rewinding back across that moment is what finds it. */
-export const SECRET_AT = 8.6;
 
 export interface Place { x: number; z: number; y?: number; ry?: number; s?: number }
 export interface Layout {
@@ -31,7 +29,7 @@ export interface Layout {
   dist: number;
   hi: Place; name: Place; me: Place; hiNote: Place;
   roles: (Place & { print?: Place; note: Place })[];
-  portfolio: Place; portfolioNote: Place; works: Place[]; secret: Place;
+  portfolio: Place; portfolioNote: Place; works: Place[];
   mat: Place; heart: Place; matNote: Place;
   board: Place; live: Place; rec: Place; liveNote: Place; play: Place;
   more: Place; ask: Place; moreNote: Place;
@@ -63,7 +61,6 @@ export function layout(portrait: boolean): Layout {
     portfolio: { x: 0, z: -3980, y: portrait ? -40 : 0 },
     portfolioNote: { x: 0, z: -3990, y: portrait ? -210 : -160 },
     works,
-    secret: { x: 0, z: -3700 },
     mat: { x: 0, z: -5700, ...(portrait ? { s: 0.82 } : {}) },
     heart: { x: 280 * s, z: -5620 },
     matNote: { x: 0, z: -6020, y: 0 },
@@ -114,7 +111,7 @@ export interface Cue { t: number; hit: Hit; level?: number }
  * The greeting, on his words (seconds into his recording):
  *   0.00  «سلام» — «سلام!» slams up            2.42  «من کامیار هستم» — «کامیار» and his engraved print
  *   3.36  «ادیتور» · 3.82 «فرانت‌اند دولوپر» · 4.74 «موشن دیزاینر» — the three roles, one on each word, each with its object
- *   6.02  «این پورتفولیوی منه…» — his real work stands up print by print; the secret lies written backwards on the floor before them
+ *   6.02  «این پورتفولیوی منه…» — his real work stands up print by print
  *  11.24  «…وارد وب‌سایت بشی» — the doormat unrolls · 13.34 «خوشت بیاد» — a red heart lands on it
  *  14.20  «آه، راستی!» — the camera whips round · 16.38 «زنده» — the board, «زنده‌ست», REC · 17.94 «باهاش بازی کنی» — its playhead runs
  *  19.10  «چیزای جالبی این تو هست» — the line and a big question mark · then «بفرما» and the dive into the last red dot

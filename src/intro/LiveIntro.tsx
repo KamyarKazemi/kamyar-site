@@ -1,12 +1,12 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
-import { intro, type Groan, type Reaction } from '../content/intro';
+import { intro } from '../content/intro';
 import { gsap } from '../lib/gsap';
 import { useNavigate } from 'react-router-dom';
 import type { Lang } from '../content/site';
 import { pathFor, useLanguage } from '../lib/language';
 import { LanguageGate } from './LanguageGate';
 import { jag, POSE, stepped } from '../lib/paper';
-import { BOARD, boardPaths, buildScene, DOT, drift, EYE, FLOOR_END, layout, lens, place, SECRET_AT, segment, type Camera, type Layout } from './scene';
+import { BOARD, boardPaths, buildScene, DOT, drift, EYE, FLOOR_END, layout, lens, place, segment, type Camera, type Layout } from './scene';
 import { drawGround } from './ground';
 import { TapeSound } from './sound';
 import { Tape, type TapeEvent } from './tape';
@@ -16,8 +16,6 @@ import { sfx, sfxOff } from '../lib/sfx';
 const PERSPECTIVE = 1100;
 // his work, the prints in the portfolio station
 const WORKS = ['cafe', 'intro', 'toolbox', 'okala'] as const;
-const FOUND = 'kk-secret';
-const wasFound = () => { try { return localStorage.getItem(FOUND) === '1'; } catch { return false; } };
 // the hand-off: the red holds this long, then the hole opens over this many paper poses
 const HOLD = 0.35, OPEN = 14;
 const INK = '#181614', RED = '#ce261e', PAPER = '#f6f3ec', SIDE = '#2b2420';
@@ -88,11 +86,14 @@ const clock = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${(
 
 /**
  * The live intro, in front of the site. A tape you put in: it plays the reel's paper world live, and you can pause it, hold rewind or
- * forward, drag it back and forth by the strip, the film or the wheel. He notices what you do with it and says something (typed for
- * now; his recordings go in later). At the end the camera dives into a red dot, the red is the page-turn sheet, and the site is under it.
+ * forward, drag it back and forth by the strip, the film or the wheel, and his recorded voice goes with it. At the end the camera dives into a red dot, the red is the page-turn sheet, and the site is under it.
  */
 export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => void; onDone: () => void }) {
-  const { lang } = useLanguage();
+  // the greeting speaks the language picked on the gate. The address (and with it the whole site behind) only switches to it once the
+  // red covers the screen at the end: switching at the tap re-lays the site out in the middle of the gate tearing apart
+  const { lang: address } = useLanguage();
+  const [picked, setPicked] = useState<Lang | null>(null);
+  const lang = picked ?? address;
   const c = intro[lang], rtl = lang === 'fa';
   const [L] = useState<Layout>(() => layout(window.innerHeight > window.innerWidth));
   const root = useRef<HTMLDivElement>(null);
@@ -104,47 +105,10 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   const tape = useRef<Tape | null>(null);
   const sound = useRef<TapeSound | null>(null);
   const [phase, setPhase] = useState<'ready' | 'running' | 'leaving'>('ready');
+  const [gateUp, setGateUp] = useState(true);
+  const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [said, setSaid] = useState<{ key: Reaction; n: number } | null>(null);
-  const [groan, setGroan] = useState<Groan | null>(null);
-  // the secret: found once (in this visit or an earlier one), it stays the right way round
-  const [found, setFound] = useState(wasFound);
-  const [cheer, setCheer] = useState(0);
-  const findSecret = useRef<() => void>(() => {});
-  findSecret.current = () => {
-    if (found) return;
-    setFound(true);
-    setCheer((n) => n + 1);
-    try { localStorage.setItem(FOUND, '1'); } catch { /* private window: it is a secret again next time */ }
-    sound.current?.play('sparkle', false, 1, 1);
-    sound.current?.play('thud', false, 1, 0.6);
-  };
-
-  // found: the backwards line turns the right way round, a stamp comes down on the screen, and red paper hearts and scraps burst out
-  useEffect(() => {
-    const el = root.current;
-    if (!cheer || !el) return;
-    const line = el.querySelector('.li-secret span'), stamp = el.querySelector('.li-found'), layer = el.querySelector<HTMLElement>('.li-burst')!;
-    const tl = gsap.timeline()
-      .fromTo(line, { scaleX: -1 }, { scaleX: 1, duration: 0.55, ease: stepped('back.out(2)', 7) }, 0)
-      .set(stamp, { autoAlpha: 1 }, 0.05)
-      .fromTo(stamp, { scale: 2.4, rotation: -22 }, { scale: 1, rotation: -6, duration: 0.2, ease: 'power4.in' }, 0.05)
-      .fromTo(stamp, { x: 0 }, { keyframes: { x: [6, -4, 2, 0] }, duration: 0.25, ease: 'steps(4)' }, 0.25)
-      .to(stamp, { autoAlpha: 0, scale: 0.9, duration: 0.35, ease: 'power2.in' }, 2.6);
-    const r = gsap.utils.random, W = innerWidth, H = innerHeight;
-    for (let i = 0; i < 34; i++) {
-      const bit = document.createElement('i');
-      bit.className = i % 3 ? 'li-bit' : 'li-bit is-heart';
-      layer.append(bit);
-      const up = r(0.18, 0.42) * H, side = r(-0.48, 0.48) * W;
-      tl.fromTo(bit, { x: W / 2, y: H * 0.42, scale: r(0.6, 1.2), rotation: r(-40, 40), autoAlpha: 1 },
-        { keyframes: { x: [W / 2 + side * 0.6, W / 2 + side], y: [H * 0.42 - up, H * 0.42 - up * 0.2 + r(0.3, 0.6) * H], easeEach: 'power1.inOut' },
-          rotation: `+=${r(-280, 280)}`, duration: r(1.4, 2.2), ease: 'none', onComplete: () => bit.remove() }, r(0, 0.12))
-        .to(bit, { autoAlpha: 0, duration: 0.4 }, '>-0.4');
-    }
-    return () => { tl.kill(); layer.replaceChildren(); };
-  }, [cheer]);
   const board = useRef<Record<string, SVGElement | null>>({});
 
   // the world is drawn at the scale that covers the screen
@@ -175,11 +139,8 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
     };
     const { tl, cues } = buildScene(el, L, cam, drawBoard);
     const stations = [...el.querySelectorAll<HTMLElement>('.li-at')].map((at) => ({ at, z: Number(at.dataset.z), near: at.dataset.near ? Number(at.dataset.near) : null, keep: 'keep' in at.dataset, face: at.querySelector<HTMLElement>('.li-anchor') }));
-    let last = 0;
     const frame = (time: number, rate: number) => {
       if (!camEl.current) return;
-      if (time < SECRET_AT && last >= SECRET_AT && rate < -0.15) findSecret.current();
-      last = time;
       // the hand holding the camera never stops; off normal speed it shakes, more the faster the tape runs
       const off = Math.abs(rate - 1), shake = off > 0.3 && Math.abs(rate) > 0.05 ? Math.min(7, off * 2) : 0, h = drift(time, shake);
       const eye = { x: cam.x + h.x, y: cam.y + h.y, z: cam.z, rx: cam.rx + h.rx, ry: cam.ry + h.ry };
@@ -205,56 +166,36 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
       const spool = rate < -0.4 ? 'rew' : rate > 1.4 ? 'ff' : '';
       if (el.dataset.spool !== spool) el.dataset.spool = spool;
       if (spool && fx.current) fx.current.textContent = `${spool === 'rew' ? '◀◀' : '▶▶'} ×${Math.abs(rate).toFixed(1)}`;
-      el.classList.toggle('is-tired', (tape.current?.tired ?? 0) > 0);
       deck.current?.style.setProperty('--p', (time / tl.duration()).toFixed(4));
       if (hud.current) {
         const mode = rate < -0.5 ? `◀◀ REW ×${Math.abs(rate).toFixed(1)}` : rate > 1.5 ? `▶▶ FF ×${rate.toFixed(1)}` : Math.abs(rate) < 0.05 ? '❚❚ PAUSE' : '▶ PLAY';
         hud.current.textContent = `${mode}   ${clock(time)} / ${clock(tl.duration())}`;
       }
     };
-    const event = (e: TapeEvent) => {
-      if (e === 'end') { setPhase('leaving'); return; }
-      if (e !== 'dizzy') sound.current?.say(e);
-      if (e === 'tiredBack' || e === 'tiredForward') { setGroan(e); return; }
-      setSaid((s) => ({ key: e, n: (s?.n ?? 0) + 1 }));
-    };
+    const event = (e: TapeEvent) => { if (e === 'end') setPhase('leaving'); };
     tape.current = new Tape(tl, cues, frame, event, null);
     // the tests drive the tape by hand
     if (import.meta.env.DEV) Object.assign(window, { __tape: tape.current });
     return () => { tape.current?.stop(); tape.current = null; tl.kill(); sound.current?.close(); sound.current = null; };
   }, [L]);
 
-  // his line, typed onto a torn label, then taken away
-  const line = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!said || !line.current) return;
-    const text = Array.from(c.reactions[said.key]), s = { n: 0 }, el = line.current;
-    const tw = gsap.to(s, { n: text.length, duration: text.length * 0.035, ease: `steps(${text.length})`, onUpdate: () => { el.textContent = text.slice(0, Math.round(s.n)).join(''); } });
-    const off = setTimeout(() => setSaid(null), 3000);
-    return () => { tw.kill(); clearTimeout(off); };
-  }, [said, c]);
-
-  const groanLine = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!groan || !groanLine.current) return;
-    const text = Array.from(c.groans[groan]), s = { n: 0 }, el = groanLine.current;
-    sound.current?.play('type', false, 1, 0.6);
-    const tw = gsap.to(s, { n: text.length, duration: text.length * 0.04, ease: `steps(${text.length})`, onUpdate: () => { el.textContent = text.slice(0, Math.round(s.n)).join(''); } });
-    const off = setTimeout(() => setGroan(null), 3400);
-    return () => { tw.kill(); clearTimeout(off); };
-  }, [groan, c]);
-
   // the hand-off. The camera has dived into the red dot, so the screen is all red; the site is set up under it. After a breath a
   // torn hole opens in the middle of the red and widens past the edges — the camera pulling back out of the dot — while the page
   // underneath settles from a little too close, and only then does the site bring its own parts in, one after another
   useEffect(() => {
     if (phase !== 'leaving') return;
-    const red = root.current!.querySelector<HTMLElement>('.li-red')!, sheet = red.firstElementChild as HTMLElement;
     tape.current?.stop();
     sound.current?.spool(1);
     sound.current?.fade();
-    gsap.set(red, { autoAlpha: 1 });
+    gsap.set(root.current!.querySelector('.li-red'), { autoAlpha: 1 });
     root.current!.classList.add('is-leaving');
+    if (lang !== address) navigate(pathFor(lang), { replace: true });
+  }, [phase]);
+  // the hole opens once the site under the red is in the picked language
+  const opening = phase === 'leaving' && lang === address;
+  useEffect(() => {
+    if (!opening) return;
+    const red = root.current!.querySelector<HTMLElement>('.li-red')!, sheet = red.firstElementChild as HTMLElement;
     onReveal(HOLD);
     const W = innerWidth, H = innerHeight, cx = W / 2, cy = H * 0.45;
     const far = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) * 1.12, edge = jag(23, 56, 1), s = { r: 0, turn: 0 };
@@ -271,17 +212,17 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
       .call(() => sfx('rip', 0.6, 0.85), [], HOLD)
       .to(s, { r: far, turn: 0.35, duration: OPEN * POSE, ease: stepped('power2.inOut', OPEN), onUpdate: draw }, HOLD);
     return () => { tl.kill(); };
-  }, [phase, onReveal, onDone]);
+  }, [opening, onReveal, onDone]);
 
   // the language is chosen on the gate; the tap that chooses it is also the one that lets the browser play sound
-  const navigate = useNavigate();
   const chosen = (pick: Lang) => {
     try { sound.current = new TapeSound(); void sound.current.resume(); } catch { sound.current = null; }
     // the tape was made before the tap that allows sound; it gets its speaker now
     if (tape.current) tape.current.sound = sound.current;
     if (sfxOff()) { sound.current?.muted(true); setMuted(true); }
-    if (pick !== lang) navigate(pathFor(pick), { replace: true });
+    setPicked(pick);
   };
+  // the tape starts as the kept half of the gate lies down, so the camera is already moving when the paper becomes the floor
   const start = () => {
     tape.current?.play(true);
     setPlaying(true);
@@ -369,15 +310,12 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
               </Fragment>
             ))}
 
-            {/* 3 — «این پورتفولیوی منه…»: his real work stands up, and the secret lies written backwards on the floor before it */}
+            {/* 3 — «این پورتفولیوی منه…»: his real work stands up, print by print */}
             <Stand at={L.portfolio} rise="portfolio" box={[1300, 170]}><Plain text={c.portfolio} size={L.portrait ? 130 : 110} rtl={rtl} /></Stand>
             <Stand at={L.portfolioNote} rise="portfolioNote" box={[600, 40]}><span className="li-note">{c.portfolioNote}</span></Stand>
             {WORKS.map((w, i) => (
               <Stand key={w} at={L.works[i]!} rise={`work${i}`} box={[320, 560]} shade={L.portrait ? undefined : 300}><span className="li-work"><img src={`/work/${w}.webp`} alt="" /></span></Stand>
             ))}
-            <div className={`li-at li-secret${found ? ' is-found' : ''}`} data-z={L.secret.z} data-near="320" style={{ transform: place(L.secret, ' rotateX(90deg)') }}>
-              <p lang={lang} dir={rtl ? 'rtl' : 'ltr'}><span>{c.secret}</span></p>
-            </div>
 
             {/* 4 — «حالا راحت می‌تونی وارد وب‌سایت بشی. امیدوارم که ازش خوشت بیاد.» */}
             <div className="li-at" data-z={L.mat.z} data-near="700" style={{ transform: place(L.mat, ' rotateX(90deg)') }}>
@@ -405,14 +343,8 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
         </div>
       </div>
       <i className="li-grain" aria-hidden="true" />
-      <div className="li-burst" aria-hidden="true" />
-      <span className="li-found" aria-hidden="true">{c.found}</span>
       <span className="li-fx" aria-hidden="true"><i /><i /><i /><span className="li-fx__stamp" ref={fx} /></span>
       <i className="li-frame" aria-hidden="true" />
-
-      <p className={`li-say${said ? ' is-on' : ''}`} data-said={said?.key} aria-live="polite">
-        <span className="li-say__line" ref={line} />
-      </p>
 
       <span className="li-hud" ref={hud} aria-hidden="true" />
       <button type="button" className="li-skip" onClick={skip}>{c.skip} {rtl ? '←' : '→'}</button>
@@ -424,12 +356,11 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
         <div className="li-strip" role="slider" aria-label={c.scrub} aria-valuemin={0} aria-valuemax={100} tabIndex={0}
           onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); seek(e); }} onPointerMove={seek}>
           <i className="li-strip__head" />
-          <span className={`li-groan${groan ? ' is-on' : ''}`} aria-live="polite"><span ref={groanLine} /></span>
         </div>
         <button type="button" className="li-key li-key--sound" aria-pressed={muted} onClick={mute}>{muted ? 'SOUND OFF' : 'SOUND ON'}</button>
       </div>
 
-      {phase === 'ready' && <LanguageGate onPress={chosen} onGone={start} />}
+      {gateUp && <LanguageGate onPress={chosen} onLie={start} onGone={() => setGateUp(false)} />}
       <div className="li-red" aria-hidden="true"><i className="li-red__sheet" /></div>
     </div>
   );

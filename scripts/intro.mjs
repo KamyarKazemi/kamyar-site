@@ -1,4 +1,4 @@
-// The language gate and the live intro: the gate first on a first visit, frames of each scene, the tape (pause, rewind, forward, drag), his reactions, and the hand-off to the site.
+// The language gate and the live intro: the gate first on a first visit, frames of each scene, the tape (pause, rewind, forward, drag), and the hand-off to the site.
 //   node scripts/intro.mjs [base] [--frames]     (--frames also saves a still of each scene in shots/intro-*.png)
 import { pathToFileURL } from 'node:url';
 const { launch } = await import(pathToFileURL('C:/mydesk/Desktop/video-pipeline/video-projects/okala/scripts/_pw.mjs').href);
@@ -23,7 +23,6 @@ const pick = async (p, lang, wait = 1700) => {
   await p.waitForTimeout(wait);
 };
 const seek = (p, t) => p.evaluate((t) => { window.__tape.play(false); window.__tape.seek(t); }, t);
-const said = (p) => p.evaluate(() => document.querySelector('.li-say.is-on')?.dataset.said ?? '');
 const shown = (p, rise) => p.evaluate((rise) => {
   const el = document.querySelector(`[data-rise="${rise}"]`), r = el.getBoundingClientRect();
   return getComputedStyle(el.parentElement).visibility === 'visible' && r.width > 20 && r.right > 0 && r.left < innerWidth && r.bottom > 0 && r.top < innerHeight;
@@ -48,7 +47,7 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   }
 
   if (tag !== 'm') {
-    // rewinding: hold the left arrow
+    // rewinding: hold the left arrow; running forward: hold the right one
     await seek(p, 6);
     await p.evaluate(() => window.__tape.play(true));
     await p.keyboard.down('ArrowLeft');
@@ -56,36 +55,14 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
     const back = await p.evaluate(() => window.__tape.rate);
     await p.keyboard.up('ArrowLeft');
     ok(`${tag} holding ← rewinds (rate ${back.toFixed(1)})`, back < -1.5);
-    ok(`${tag} he notices the rewind (${await said(p)})`, (await said(p)).includes('rewind1'));
-    await p.waitForTimeout(2200);
+    await p.waitForTimeout(600);
     await p.keyboard.down('ArrowRight');
     await p.waitForTimeout(700);
-    ok(`${tag} holding → runs it forward and he notices (${await said(p)})`, (await said(p)).includes('forward'));
+    const fwd = await p.evaluate(() => window.__tape.rate);
     await p.keyboard.up('ArrowRight');
-
-    // the secret: rewinding back over the portfolio turns the backwards line the right way round, with a stamp and a burst
-    await p.evaluate(() => localStorage.removeItem('kk-secret'));
-    await seek(p, 10.4);
-    await p.evaluate(() => window.__tape.play(true));
-    await p.keyboard.down('ArrowLeft');
-    await p.waitForTimeout(1300);
-    await p.keyboard.up('ArrowLeft');
-    await p.waitForTimeout(250);
-    const secret = await p.evaluate(() => ({ found: document.querySelector('.li-secret').classList.contains('is-found'), stamp: getComputedStyle(document.querySelector('.li-found')).visibility, bits: document.querySelectorAll('.li-bit').length, kept: localStorage.getItem('kk-secret') }));
-    ok(`${tag} rewinding over the portfolio finds the secret (stamp ${secret.stamp}, ${secret.bits} bits of paper)`, secret.found && secret.stamp === 'visible' && secret.bits > 20 && secret.kept === '1');
-    await p.waitForTimeout(2600);
-
-    // pushed too hard the timeline wears out: it complains in its own words, crawls, and then he says "told you"
-    await seek(p, 21);
-    await p.evaluate(() => window.__tape.play(true));
-    await p.keyboard.down('ArrowLeft');
-    await p.waitForTimeout(3900);
-    const worn = await p.evaluate(() => ({ tired: document.querySelector('.li').classList.contains('is-tired'), groan: document.querySelector('.li-groan.is-on')?.textContent ?? '', rate: window.__tape.rate }));
-    await p.keyboard.up('ArrowLeft');
-    ok(`${tag} rewinding too long wears the timeline out ("${worn.groan}", crawling at ${worn.rate.toFixed(2)})`, worn.tired && worn.groan.length > 4 && Math.abs(worn.rate) < 0.6);
-    await p.waitForTimeout(3800);
-    ok(`${tag} rested, and he says "told you" (${await said(p)})`, (await said(p)).includes('told'));
-    await p.waitForTimeout(1000);
+    ok(`${tag} holding → runs it forward (rate ${fwd.toFixed(1)})`, fwd > 1.5);
+    ok(`${tag} no reactions, no secret, no wear-out left in the greeting`, await p.evaluate(() => !document.querySelector('.li-say, .li-groan, .li-secret, .li-found, .li-burst')));
+    await p.waitForTimeout(600);
 
     // the strip: dragging it puts the playhead there
     const strip = await p.locator('.li-strip').boundingBox();
@@ -98,13 +75,11 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
     const at = await p.evaluate(() => window.__tape.time / window.__tape.duration);
     ok(`${tag} the strip seeks to a quarter of the way (${at.toFixed(2)})`, Math.abs(at - 0.25) < 0.05);
 
-    // space pauses; a long pause and he asks if you are still there
+    // space pauses
     await p.waitForTimeout(2000);
     await p.keyboard.press(' ');
     await p.waitForTimeout(400);
     ok(`${tag} space pauses`, await p.evaluate(() => Math.abs(window.__tape.rate) < 0.05));
-    await p.waitForTimeout(5600);
-    ok(`${tag} a long pause and he asks (${await said(p)})`, (await said(p)).includes('idle'));
   }
 
   // the end: the camera dives into the red dot and the site comes out from under the sheet
@@ -116,13 +91,30 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   await p.context().close();
 }
 
-// a first visit to / starts at the gate; picking English moves the address to /en and the intro speaks English
+// a first visit to / starts at the gate. The tape is already running while the picked half is still lying down. Picking English
+// makes the intro speak English at once, but the address (and the site behind) switches to /en only under the red at the end
 {
   const p = await open('/', { width: 1440, height: 900 });
   ok('a first visit to / opens on the language gate', await p.isVisible('.gate'));
-  await pick(p, 'en');
-  const s = await p.evaluate(() => ({ path: location.pathname, lang: document.querySelector('.li')?.getAttribute('lang'), name: document.querySelector('[data-rise="name"] text')?.textContent }));
-  ok(`picking English goes to /en and the intro is in English (${s.path}, ${s.name})`, s.path === '/en' && s.lang === 'en' && s.name === 'Kamyar');
+  await pick(p, 'en', 900);
+  const s = await p.evaluate(() => ({ gate: !!document.querySelector('.gate'), time: window.__tape.time, path: location.pathname, lang: document.querySelector('.li')?.getAttribute('lang'), name: document.querySelector('[data-rise="name"] text')?.textContent }));
+  ok(`the intro is already moving while the gate lies down (gate up ${s.gate}, tape at ${s.time.toFixed(2)})`, s.gate && s.time > 0.05);
+  ok(`picking English: the intro is in English, the address waits (${s.path}, ${s.lang}, ${s.name})`, s.path === '/' && s.lang === 'en' && s.name === 'Kamyar');
+  await p.evaluate(() => { window.__tape.seek(window.__tape.duration - 0.6); window.__tape.play(true); });
+  await p.waitForTimeout(3400);
+  const e = await p.evaluate(() => ({ path: location.pathname, lang: document.documentElement.lang, live: !!document.querySelector('.li') }));
+  ok(`…and the English site comes out from under the red (${e.path}, ${e.lang})`, !e.live && e.path === '/en' && e.lang === 'en');
+  await p.context().close();
+}
+// on a phone, picking English tears the Persian half off upwards instead of fading it where it is
+{
+  const p = await open('/', { width: 390, height: 844 });
+  await p.waitForTimeout(1200);
+  const r = await p.locator('.gate__half--en .gate__in').boundingBox();
+  await p.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
+  await p.waitForTimeout(420);
+  const top = await p.evaluate(() => document.querySelector('.gate__half--fa')?.getBoundingClientRect().top ?? 0);
+  ok(`phone: the Persian half is torn off upwards (${Math.round(top)}px)`, top < -60);
   await p.context().close();
 }
 // a returning visitor goes straight to the site
