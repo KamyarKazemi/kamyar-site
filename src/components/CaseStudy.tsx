@@ -23,7 +23,7 @@ const along = (pos: number) => `${(((pos - 1) / 49) * 100).toFixed(2)}%`;
  * on (no fee, 40% of the profit on each online sale), its real Google results, what was built and what is next.
  */
 export function CaseStudy() {
-  const { lang, t, toggle } = useLanguage();
+  const { lang, t, toggle, turnTo } = useLanguage();
   const c = atarinaji[lang], rtl = lang === 'fa';
   const root = useRef<HTMLDivElement>(null);
 
@@ -32,7 +32,8 @@ export function CaseStudy() {
     document.title = c.meta.title;
     document.querySelector('meta[name="description"]')?.setAttribute('content', c.meta.description);
   }, [c]);
-  useEffect(() => { scrollTo(0, 0); }, []);
+  // the page opens at its top, at once: the site scrolls smoothly, which here would glide up from where the home page was
+  useEffect(() => { scrollTo({ top: 0, behavior: 'instant' }); }, []);
 
   // the same stop-motion as the home page: things rise in as they come into view, the chart's line draws itself
   useGSAP(() => {
@@ -54,10 +55,13 @@ export function CaseStudy() {
   return (
     <div className="cs" ref={root}>
       <header className="cs-top">
-        <Link className="cs-top__back" to={{ pathname: home, hash: '#work' }}>{rtl ? '→' : '←'} {c.back}</Link>
+        <Link className="cs-top__back" to={{ pathname: home, hash: '#work' }} onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); turnTo({ pathname: home, hash: '#work' }); }}>{rtl ? '→' : '←'} {c.back}</Link>
         <span className="note cs-top__kicker">{c.kicker}</span>
-        <button type="button" className="cs-top__lang" onClick={toggle} aria-label={t.otherLangName}>{t.otherLang}</button>
-        <a className="btn btn--sm" href={links.dm} target="_blank" rel="noreferrer">{t.reach}</a>
+        <button type="button" className="head__lang cs-top__lang" onClick={toggle} aria-label={t.otherLangName}>
+          <i className={`head__knob${rtl ? ' is-fa' : ''}`} aria-hidden="true" />
+          <span aria-current={rtl ? undefined : 'true'}>EN</span><span aria-current={rtl ? 'true' : undefined}>FA</span>
+        </button>
+        <a className="btn btn--sm cs-top__cta" href={links.dm} target="_blank" rel="noreferrer">{t.reach}</a>
       </header>
 
       <main className="cs-main">

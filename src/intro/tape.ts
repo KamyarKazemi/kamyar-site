@@ -20,7 +20,7 @@ export class Tape {
   private moved = 0;              // playhead movement by hand this frame
   private ended = false;
   private drawnRate = NaN;     // the speed the world was last drawn at
-  readonly duration: number;
+  duration: number;
 
   constructor(
     private tl: gsap.core.Timeline,
@@ -34,6 +34,12 @@ export class Tape {
   }
 
   stop(): void { gsap.ticker.remove(this.tick); }
+
+  /** Puts another film on the tape (the other language's), at its start. */
+  load(tl: gsap.core.Timeline, cues: Cue[]): void {
+    this.tl = tl; this.cues = cues; this.duration = tl.duration(); this.ended = false;
+    this.seek(0);
+  }
 
   /** Draws the world again on the next frame, though nothing has moved (the screen changed size). */
   redraw(): void { this.drawnRate = NaN; }

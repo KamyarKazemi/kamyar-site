@@ -35,12 +35,16 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   ok(`${tag} the gate is gone once a language is picked`, !(await p.$('.gate')));
   ok(`${tag} it plays`, await p.evaluate(() => window.__tape.time > 0.2 && window.__tape.playing));
 
-  for (const [t, rise, name] of [[1.6, 'hi', 'the hello'], [3.0, 'name', 'his name'], [3.0, 'me', 'his print'], [5.3, 'role2', 'the last role'], [9.6, 'work3', 'the last work print'], [17.2, 'board', 'the timeline board'], [17.3, 'live', 'LIVE'], [20.3, 'come', 'come in']]) {
+  // each language's film runs on its own recording, so the moments to look at differ
+  const checks = tag === 'e'
+    ? [[1.6, 'hi', 'the hello'], [3.0, 'name', 'his name'], [3.0, 'me', 'his print'], [5.8, 'role2', 'the last role'], [9.2, 'work3', 'the last work print'], [12.6, 'board', 'the timeline board'], [12.7, 'live', 'LIVE'], [18.3, 'come', 'come in']]
+    : [[1.6, 'hi', 'the hello'], [3.0, 'name', 'his name'], [3.0, 'me', 'his print'], [5.3, 'role2', 'the last role'], [9.6, 'work3', 'the last work print'], [17.2, 'board', 'the timeline board'], [17.3, 'live', 'LIVE'], [20.3, 'come', 'come in']];
+  for (const [t, rise, name] of checks) {
     await seek(p, t);
     await p.waitForTimeout(120);
     ok(`${tag} ${name} stands up and is on screen at ${t}s`, await shown(p, rise));
   }
-  if (frames) for (const t of [1.0, 3.0, 5.2, 7.4, 9.6, 12.6, 14.4, 17.2, 18.4, 19.4, 20.3, 21.2]) {
+  if (frames) for (const t of tag === 'e' ? [1.0, 3.0, 5.6, 7.4, 8.9, 10.6, 11.5, 12.8, 14.5, 16.5, 18.0, 19.0] : [1.0, 3.0, 5.2, 7.4, 9.6, 12.6, 14.4, 17.2, 18.4, 19.4, 20.3, 21.2]) {
     await seek(p, t);
     await p.waitForTimeout(150);
     await p.screenshot({ path: `shots/intro-${tag}-${String(t).replace('.', '_')}.png` });
@@ -100,7 +104,7 @@ for (const [tag, path, viewport] of [['d', '/intro', { width: 1440, height: 900 
   const s = await p.evaluate(() => ({ path: location.pathname, lang: document.querySelector('.li')?.getAttribute('lang'), name: document.querySelector('[data-rise="name"] text')?.textContent }));
   ok(`picking English: the intro is in English, the address waits (${s.path}, ${s.lang}, ${s.name})`, s.path === '/' && s.lang === 'en' && s.name === 'Kamyar');
   // the dots trail «Come in» on its right, and the camera's walk and dive follow them there
-  await seek(p, 20.4);
+  await seek(p, 18.34);
   await p.waitForTimeout(150);
   const dots = await p.evaluate(() => [...document.querySelectorAll('.li-dot')].map((d) => d.getBoundingClientRect()).map((r) => ({ x: r.left + r.width / 2, w: r.width })));
   ok(`English: the three dots trail the word on its right, all on screen (${dots.map((d) => Math.round(d.x)).join(', ')})`, dots.length === 3 && dots.every((d) => d.x > 720 && d.x + d.w / 2 < 1440 + 2));

@@ -322,7 +322,9 @@ a { color: inherit; transition: color .15s; }
   .hero__actions .btn { flex: 1 1 0; min-width: 0; padding-inline: 12px; }
   /* the chapter ticks read as noise on a narrow line; the pen alone measures the page */
   .head__ticks { display: none; }
-  .head__lang span { width: 42px; min-height: 44px; }
+  /* the language switch at a phone's size: two small keys, not two big buttons */
+  .head__lang { font-size: 12px; box-shadow: 2px 3px 0 var(--ink); }
+  .head__lang span { width: 32px; min-height: 34px; }
   .sec__head { margin-bottom: 28px; }
   .note { font-size: 13px; }
   /* five prints in two columns: the last one hangs centred under the others instead of off to one side */
@@ -358,7 +360,13 @@ a { color: inherit; transition: color .15s; }
 .head__sound .head__mute { display: none; }
 .head__sound.is-off .head__mute { display: block; }
 .head__sound.is-off .head__waves { opacity: .25; }
-@media (max-width: 760px) { .head__sound { width: 44px; height: 44px; } }
+/* on a phone the sound switch moves into the menu */
+@media (max-width: 760px) { .head__sound { display: none; } }
+.menu__sound { display: none; align-items: center; gap: 12px; align-self: flex-start; min-height: 48px; padding: 0 18px; border: 2px solid var(--ink); background: var(--paper); box-shadow: 3px 4px 0 var(--ink); font-weight: 800; font-size: 17px; }
+.menu__sound .head__mute { display: none; }
+.menu__sound.is-off .head__mute { display: block; }
+.menu__sound.is-off .head__waves { opacity: .25; }
+@media (max-width: 760px) { .menu__sound { display: inline-flex; } }
 
 /* the case study's way in, under the prints: a wide paper strip with the site's screen, its name, one line and a red arrow */
 .case-link { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr) auto; align-items: center; gap: clamp(18px, 3vw, 40px); margin-top: clamp(48px, 6vw, 80px); padding: 18px; background: var(--paper) var(--wall) 0 0 / 1024px; background-blend-mode: multiply; border: 2px solid var(--ink); box-shadow: 10px 12px 0 var(--red); text-decoration: none; transition: translate .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s cubic-bezier(.2, .8, .2, 1); }

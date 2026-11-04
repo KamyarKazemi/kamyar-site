@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DESK_POINTER, gsap, MOTION, useGSAP } from '../lib/gsap';
 import { Link } from 'react-router-dom';
 import { pathFor, useLanguage } from '../lib/language';
@@ -18,7 +18,7 @@ const PAD = 20;
  * Close it (outside, Escape, or the button) and it flies back into its slot. Previous and next send it home and bring the neighbour out.
  */
 export function Work() {
-  const { lang, t } = useLanguage();
+  const { lang, t, turnTo } = useLanguage();
   const items = t.work.items, count = items.length;
   const [open, setOpen] = useState<number | null>(null);
   const root = useRef<HTMLElement>(null);
@@ -203,6 +203,13 @@ export function Work() {
     else if (dy > 80 && dy > Math.abs(dx) * 1.3) home();
   };
   const current = open === null ? null : items[open];
+  // the case study is its own download: fetched while the page is idle, so the sheet that turns to it never uncovers a blank page
+  useEffect(() => {
+    const get = () => { void import('./CaseStudy'); };
+    const id = 'requestIdleCallback' in window ? requestIdleCallback(get, { timeout: 4000 }) : setTimeout(get, 2500);
+    return () => { if ('cancelIdleCallback' in window) cancelIdleCallback(id as number); else clearTimeout(id); };
+  }, []);
+  const caseHref = `${pathFor(lang) === '/' ? '' : pathFor(lang)}/work/atarinaji`;
 
   return (
     <section className="sec" id="work" ref={root}>
@@ -223,7 +230,7 @@ export function Work() {
       </ul>
 
       {/* the work told in full: a case study on its own page */}
-      <Link className="case-link rise" to={`${pathFor(lang) === '/' ? '' : pathFor(lang)}/work/atarinaji`}>
+      <Link className="case-link rise" to={caseHref} onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); sfx('peel', 0.5); turnTo(caseHref); }}>
         <img src="/work/atarinaji/home.webp" alt="" width="1600" height="1000" loading="lazy" decoding="async" />
         <span className="case-link__text">
           <span className="note">{t.work.caseStudy.note}</span>

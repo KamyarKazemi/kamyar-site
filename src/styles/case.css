@@ -10,8 +10,7 @@
 .cs-top__back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid var(--ink); background: var(--paper); font-weight: 800; font-size: 15px; text-decoration: none; }
 .cs-top__back:hover { background: var(--ink); color: var(--paper); }
 .cs-top__kicker { margin-inline-start: auto; }
-.cs-top__lang { min-width: 44px; min-height: 44px; font: 700 15px var(--typed); border: 1px solid var(--ink); background: var(--paper); }
-.cs-top__lang:hover { background: var(--ink); color: var(--paper); }
+.cs-top__lang { margin-inline-start: 0; }
 
 .cs-main { width: min(1180px, 100%); margin: 0 auto; padding: 56px var(--gutter) 120px; display: flex; flex-direction: column; gap: clamp(80px, 10vw, 130px); }
 .cs-sheet { background: var(--paper) var(--wall) 0 0 / 1024px; background-blend-mode: multiply; border: 2px solid var(--ink); }
@@ -130,8 +129,9 @@
 
 /* a phone: everything in one column, the four numbers in a two by two */
 @media (max-width: 860px) {
-  .cs-top__kicker { display: none; }
-  .cs-top .btn { margin-inline-start: auto; }
+  /* a phone's bar: the way back as a plain link, and the language switch; the page ends with its own way to get in touch */
+  .cs-top__kicker, .cs-top__cta { display: none; }
+  .cs-top__lang { margin-inline-start: auto; }
   .cs-facts, .cs-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cs-facts > div, .cs-stats > div { padding-inline: 0 14px; border-bottom: 1px solid var(--ink); }
   .cs-facts > div + div, .cs-stats > div + div { border-inline-start: 0; }
@@ -139,7 +139,8 @@
   .cs-deal, .cs-built, .cs-next { grid-template-columns: minmax(0, 1fr); }
   .cs-deal__text, .cs-deal__nums, .cs-built > div:first-child, .cs-built__grid, .cs-next > div, .cs-next ul { grid-column: 1 / -1; }
   .cs-top { gap: 10px; }
-  .cs-top__back { padding: 0 12px; font-size: 14px; white-space: nowrap; }
+  .cs-top__back { padding: 0; border: 0; background: none; font-size: 16px; white-space: nowrap; }
+  .cs-top__back:hover { background: none; color: var(--red); }
   .cs-deal__why, .cs-wins, .cs-pages, .cs-built__grid ul { grid-template-columns: 1fr; }
   .cs-deal__why, .cs-next { padding: 26px 22px; }
   .cs-built__grid dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }

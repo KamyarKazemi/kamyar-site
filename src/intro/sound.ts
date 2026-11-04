@@ -23,7 +23,10 @@ export class TapeSound {
   private bank = new Map<string, AudioBuffer>();
   private whir: { gain: GainNode; band: BiquadFilterNode };
   private room: GainNode;
-  private voice: [AudioBuffer, AudioBuffer] | null = null;
+  /** his voice in each language, forwards and turned round */
+  private voices: Partial<Record<'fa' | 'en', [AudioBuffer, AudioBuffer]>> = {};
+  private lang: 'fa' | 'en' = 'fa';
+  private get voice(): [AudioBuffer, AudioBuffer] | null { return this.voices[this.lang] ?? null; }
   private speaking: Playing | null = null;
   private awake = false;
   private roomReady = false;
@@ -62,7 +65,7 @@ export class TapeSound {
         this.bank.set(`${hit}>`, buf);
         this.bank.set(`${hit}<`, reversed(this.ctx, buf));
       }),
-      (async () => { const v = await get('/live/voice/greeting.mp3'); this.voice = [v, reversed(this.ctx, v)]; })(),
+      ...(['fa', 'en'] as const).map(async (lang) => { const v = await get(`/live/voice/greeting${lang === 'en' ? '-en' : ''}.mp3`); this.voices[lang] = [v, reversed(this.ctx, v)]; }),
     ]);
     const room = this.ctx.createBufferSource();
     room.buffer = await get('/live/sfx/room.mp3');
@@ -72,6 +75,9 @@ export class TapeSound {
     this.roomReady = true;
     if (this.awake) this.room.gain.setTargetAtTime(0.4, this.ctx.currentTime, 0.8);
   }
+
+  /** Which recording the tape plays: Persian or English. */
+  speak(lang: 'fa' | 'en'): void { if (lang !== this.lang) { this.hush(); this.lang = lang; } }
 
   /**
    * Browsers only allow sound after a tap; the language gate is that tap. The sound itself is made (and the voice decoded) before

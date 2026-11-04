@@ -21,6 +21,11 @@ const moving = () => window.matchMedia(MOTION).matches;
  * the header lifts off the page as a torn strip. Pointing at a link retypes its second name; pointing at the name away from the top
  * offers the way back up. The switch knocks across, and after the page turn every part walks over to its new side.
  */
+/** A speaker with its sound waves, and a red stroke through it when the sound is off. */
+const SoundIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" /><path className="head__waves" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path className="head__mute" d="M3 21L21 3" stroke="#ce261e" strokeWidth="2.6" strokeLinecap="round" /></svg>
+);
+
 export function Header() {
   const { lang, t, toggle } = useLanguage();
   const other = copy[lang === 'fa' ? 'en' : 'fa'];
@@ -151,6 +156,7 @@ export function Header() {
     </a>
   ));
 
+  const hush = () => { setSfxOff(!quiet); if (quiet) sfx('tap', 0.5); };
   return (
     <header className="head" ref={root}>
       <a className="head__name" href="#top" data-walk="name">
@@ -163,8 +169,8 @@ export function Header() {
         <span aria-current={lang === 'en' ? 'true' : undefined}>EN</span><span aria-current={lang === 'fa' ? 'true' : undefined}>FA</span>
       </button>
       <button type="button" className={`head__sound${quiet ? ' is-off' : ''}`} aria-pressed={!quiet} aria-label={quiet ? t.sound.on : t.sound.off} data-walk="sound"
-        onClick={() => { setSfxOff(!quiet); if (quiet) sfx('tap', 0.5); }}>
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" /><path className="head__waves" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path className="head__mute" d="M3 21L21 3" stroke="#ce261e" strokeWidth="2.6" strokeLinecap="round" /></svg>
+        onClick={hush}>
+        <SoundIcon />
       </button>
       <a className="btn btn--sm head__cta" href={links.dm} target="_blank" rel="noreferrer" data-walk="cta">{t.reach}<i>/</i><span>{other.reach}</span></a>
       <button type="button" className="head__burger" aria-label={t.menu.open} onClick={() => { if (!menu.current) return; menu.current.showModal(); openMenu(menu.current); smooth.stop(); }} data-walk="burger"><i /><i /></button>
@@ -174,6 +180,8 @@ export function Header() {
       <dialog className="menu" ref={menu} aria-label={t.menu.label} onClose={() => smooth.start()}>
         <button type="button" className="menu__close" aria-label={t.menu.close} onClick={() => menu.current?.close()}><i /><i /></button>
         <nav aria-label={t.menu.label}>{items(() => menu.current?.close())}</nav>
+        {/* on a phone the sound switch lives here, not in the crowded header */}
+        <button type="button" className={`menu__sound${quiet ? ' is-off' : ''}`} aria-pressed={!quiet} onClick={hush}><SoundIcon /><span>{quiet ? t.sound.on : t.sound.off}</span></button>
         <a className="btn" href={links.dm} target="_blank" rel="noreferrer">{t.cta}</a>
       </dialog>
     </header>

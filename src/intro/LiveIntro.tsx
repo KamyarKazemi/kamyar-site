@@ -6,7 +6,7 @@ import type { Lang } from '../content/site';
 import { pathFor, useLanguage } from '../lib/language';
 import { LanguageGate } from './LanguageGate';
 import { jag, POSE, stepped } from '../lib/paper';
-import { BOARD, boardPaths, buildScene, DOT, drift, EYE, FLOOR_END, layout, lens, place, segment, type Camera, type Layout } from './scene';
+import { BOARD, boardPaths, buildScene, DOT, drift, EYE, FLOOR_END, layout, lens, place, segment, type Camera, type Cue, type Layout } from './scene';
 import { drawGround } from './ground';
 import { TapeSound } from './sound';
 import { Tape, type TapeEvent } from './tape';
@@ -109,8 +109,16 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const board = useRef<Record<string, SVGElement | null>>({});
-  const aimAt = useRef<(rtl: boolean) => void>(() => {});
-  useEffect(() => { aimAt.current(rtl); }, [rtl]);
+  // a film per language, each on its own recording's beats: the one the page opens in is built at once, the other while the gate is
+  // up, and picking a language puts the tape onto that one before it starts
+  const films = useRef<Partial<Record<Lang, { tl: gsap.core.Timeline; cues: Cue[] }>>>({});
+  const film = useRef<(lang: Lang) => { tl: gsap.core.Timeline; cues: Cue[] }>(null!);
+  useEffect(() => {
+    if (phase !== 'ready' || !tape.current) return;
+    const f = film.current(lang);
+    tape.current.load(f.tl, f.cues);
+    sound.current?.speak(lang);
+  }, [lang]);
 
   // the world is drawn at the scale that covers the screen
   useLayoutEffect(() => {
@@ -138,9 +146,10 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
       b.knob?.setAttribute('d', p.knob);
       if (b.drop) { b.drop.setAttribute('cx', String(p.drop.x)); b.drop.setAttribute('cy', p.drop.y.toFixed(1)); b.drop.setAttribute('opacity', String(p.drop.o)); }
     };
-    const { tl, cues, aim } = buildScene(el, L, cam, drawBoard, rtl);
-    aimAt.current = aim;
+    film.current = (which) => (films.current[which] ??= buildScene(el, L, cam, drawBoard, which));
+    const { tl, cues } = film.current(lang);
     const stations = [...el.querySelectorAll<HTMLElement>('.li-at')].map((at) => ({ at, z: Number(at.dataset.z), near: at.dataset.near ? Number(at.dataset.near) : null, keep: 'keep' in at.dataset, face: at.querySelector<HTMLElement>('.li-anchor') }));
+    const length = () => tape.current?.duration ?? tl.duration();
     const frame = (time: number, rate: number) => {
       if (!camEl.current) return;
       // the hand holding the camera never stops; off normal speed it shakes, more the faster the tape runs
@@ -151,7 +160,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
       if (g) {
         const stretches = L.route.length - 1;
         drawGround(g, { width: innerWidth, height: innerHeight, scale: Math.max(innerWidth / L.width, innerHeight / L.height), perspective: PERSPECTIVE }, eye, L.route,
-          (i) => Math.min(1, Math.max(0, (time - (i / stretches) * 20) / 1.4)));
+          (i) => Math.min(1, Math.max(0, (time - (i / stretches) * (length() - 1.7)) / 1.4)));
       }
       // only what is near the camera is drawn: Chrome drops 3D layers past its budget, and far things are lost in the distance anyway.
       // On a phone the camera walks right past earlier pieces, so those are put away before they fill the lens; the dots are what it
@@ -168,17 +177,25 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
       const spool = rate < -0.4 ? 'rew' : rate > 1.4 ? 'ff' : '';
       if (el.dataset.spool !== spool) el.dataset.spool = spool;
       if (spool && fx.current) fx.current.textContent = `${spool === 'rew' ? '◀◀' : '▶▶'} ×${Math.abs(rate).toFixed(1)}`;
-      deck.current?.style.setProperty('--p', (time / tl.duration()).toFixed(4));
+      deck.current?.style.setProperty('--p', (time / length()).toFixed(4));
       if (hud.current) {
         const mode = rate < -0.5 ? `◀◀ REW ×${Math.abs(rate).toFixed(1)}` : rate > 1.5 ? `▶▶ FF ×${rate.toFixed(1)}` : Math.abs(rate) < 0.05 ? '❚❚ PAUSE' : '▶ PLAY';
-        hud.current.textContent = `${mode}   ${clock(time)} / ${clock(tl.duration())}`;
+        hud.current.textContent = `${mode}   ${clock(time)} / ${clock(length())}`;
       }
     };
     const event = (e: TapeEvent) => { if (e === 'end') setPhase('leaving'); };
     tape.current = new Tape(tl, cues, frame, event, null);
     // the tests drive the tape by hand
     if (import.meta.env.DEV) Object.assign(window, { __tape: tape.current });
-    return () => { tape.current?.stop(); tape.current = null; tl.kill(); sound.current?.close(); sound.current = null; };
+    // the other language's film, built while nothing else is happening
+    const other: Lang = lang === 'fa' ? 'en' : 'fa';
+    const idle = 'requestIdleCallback' in window ? requestIdleCallback(() => film.current(other), { timeout: 2500 }) : setTimeout(() => film.current(other), 900);
+    return () => {
+      if ('cancelIdleCallback' in window) cancelIdleCallback(idle as number); else clearTimeout(idle);
+      tape.current?.stop(); tape.current = null;
+      Object.values(films.current).forEach((f) => f?.tl.kill()); films.current = {};
+      sound.current?.close(); sound.current = null;
+    };
   }, [L]);
 
   // the hand-off. The camera has dived into the red dot, so the screen is all red; the site is set up under it. After a breath a
@@ -219,7 +236,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   // the sound is made while the gate is up, once its own entrance has played, so the tap only has to switch it on
   const makeSound = () => {
     if (sound.current) return;
-    try { sound.current = new TapeSound(); } catch { sound.current = null; }
+    try { sound.current = new TapeSound(); sound.current.speak(lang); } catch { sound.current = null; }
     if (tape.current) tape.current.sound = sound.current;
   };
   useEffect(() => {
@@ -229,6 +246,7 @@ export function LiveIntro({ onReveal, onDone }: { onReveal: (after: number) => v
   // the language is chosen on the gate; the tap that chooses it is also the one that lets the browser play sound
   const chosen = (pick: Lang) => {
     makeSound();
+    sound.current?.speak(pick);
     void sound.current?.resume();
     if (sfxOff()) { sound.current?.muted(true); setMuted(true); }
     // a different language than the address re-renders the world in it: done in slices, so the gate keeps tearing smoothly meanwhile

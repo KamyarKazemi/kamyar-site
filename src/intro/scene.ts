@@ -62,7 +62,8 @@ export function layout(portrait: boolean): Layout {
     portfolioNote: { x: 0, z: -3990, y: portrait ? -210 : -160 },
     works,
     mat: { x: 0, z: -5700, ...(portrait ? { s: 0.82 } : {}) },
-    heart: { x: 280 * s, z: -5620 },
+    // on the doormat's front corner, clear of the word whichever language it is in
+    heart: { x: 380 * s, z: -5560 },
     matNote: { x: 0, z: -6020, y: 0 },
     board: { x: 0, z: -7300, ...(portrait ? { s: 0.78 } : {}) },
     live: { x: -170, z: -6950, ry: 6, s: 0.82, ...(portrait ? { x: 0, y: -280, z: -7240, s: 1 } : {}) },
@@ -107,16 +108,48 @@ export function boardPaths(sag: number, head: number, drop: number) {
 export interface Camera { x: number; y: number; z: number; rx: number; ry: number }
 export interface Cue { t: number; hit: Hit; level?: number }
 
+/** When things happen, from his words in each recording (seconds): the Persian and the English takes are different scripts. */
+export interface Beats {
+  /** his name, and with it the camera's step to it */
+  name: number;
+  rolesCam: number; roles: [number, number, number];
+  portCam: number; portfolio: number; works: [number, number, number, number];
+  matCam: number; mat: number; matNote: number; heart: number;
+  /** the "by the way" whip onto the board */
+  whip: number; board: number; live: number; play: number;
+  /** the board's playhead runs: [when, where 0–1, how long] */
+  heads: [number, number, number][];
+  come: number; dive: number; end: number;
+}
+
 /**
- * The greeting, on his words (seconds into his recording):
- *   0.00  «سلام» — «سلام!» slams up            2.42  «من کامیار هستم» — «کامیار» and his engraved print
- *   3.36  «ادیتور» · 3.82 «فرانت‌اند دولوپر» · 4.74 «موشن دیزاینر» — the three roles, one on each word, each with its object
- *   6.02  «این پورتفولیوی منه…» — his real work stands up print by print
- *  11.24  «…وارد وب‌سایت بشی» — the doormat unrolls · 13.34 «خوشت بیاد» — a red heart lands on it
- *  14.20  «آه، راستی!» — the camera whips round · 16.38 «زنده» — the board, «زنده‌ست», REC · 17.94 «باهاش بازی کنی» — its playhead runs
- *  19.10  his voice has ended — «بفرما», three dots, and the dive into the last red dot
+ * Persian (public/live/voice/greeting.mp3):
+ *   0.00 «سلام» · 2.42 «من کامیار» · 3.36 «ادیتور» · 3.82 «فرانت‌اند» · 4.74 «موشن» · 6.02 «این پورتفولیوی منه…»
+ *   11.24 «…وارد وب‌سایت بشی» (the doormat) · 13.34 «خوشت بیاد» (the heart) · 14.20 «آه، راستی!» (the whip) · 16.38 «زنده» · 17.94 «باهاش بازی کنی»
+ *   19.0 his voice ends: «بفرما», three dots, the dive
+ * English (greeting-en.mp3):
+ *   0.00 "Hey" · 2.46 "Kamyar" · 3.62 "editor" · 4.18 "front-end" · 5.34 "motion" · 6.68 "portfolio"
+ *   9.88 "So, I hope you like it" (doormat, heart on "like") · 11.10 "By the way" (whip) · 12.08 "interactive timeline" · 13.62 "play with it"
+ *   14.26–17.04 "It took a lot of time…" (the playhead keeps running) · 17.64 "proceed" · 18.36 "Bye for now" (the dive)
  */
-export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard: (sag: number, head: number, drop: number) => void, rtl: boolean): { tl: gsap.core.Timeline; cues: Cue[]; aim: (rtl: boolean) => void } {
+export const BEATS: Record<'fa' | 'en', Beats> = {
+  fa: {
+    name: 2.42, rolesCam: 2.95, roles: [3.32, 3.78, 4.7], portCam: 5.4, portfolio: 6.0, works: [6.56, 7.02, 7.5, 8.36],
+    matCam: 10.5, mat: 11.2, matNote: 12.0, heart: 13.3, whip: 14.15, board: 15.6, live: 16.3, play: 17.4,
+    heads: [[17.6, 0.15, 0.55], [18.15, 0.9, 0.65], [18.8, 0.5, 0.4]],
+    come: 19.1, dive: 20.4, end: 21.7,
+  },
+  en: {
+    name: 2.42, rolesCam: 3.15, roles: [3.58, 4.14, 5.3], portCam: 5.95, portfolio: 6.62, works: [7.2, 7.7, 8.2, 8.9],
+    matCam: 9.25, mat: 9.9, matNote: 10.2, heart: 10.55, whip: 11.0, board: 11.85, live: 12.1, play: 13.55,
+    heads: [[13.7, 0.15, 0.55], [14.25, 0.9, 0.65], [14.9, 0.3, 0.6], [15.5, 0.8, 0.6], [16.1, 0.5, 0.5]],
+    come: 17.05, dive: 18.35, end: 19.65,
+  },
+};
+
+/** The greeting in one language, on its own recording's beats; the dots and «بفرما» / "Come in" stand on that language's side. */
+export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard: (sag: number, head: number, drop: number) => void, lang: 'fa' | 'en'): { tl: gsap.core.Timeline; cues: Cue[] } {
+  const B = BEATS[lang], rtl = lang === 'fa';
   const q = <T extends Element = HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
   const all = (sel: string) => [...root.querySelectorAll<HTMLElement>(sel)];
   const rise = stepped('back.out(1.7)', 7);
@@ -152,92 +185,83 @@ export function buildScene(root: HTMLElement, L: Layout, cam: Camera, drawBoard:
 
   // the route draws itself ahead of the camera
   all('.li-route b').forEach((seg, i, segs) => {
-    tl.fromTo(seg, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, ease: 'none' }, (i / segs.length) * 20);
+    tl.fromTo(seg, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, ease: 'none' }, (i / segs.length) * (B.end - 1.7));
   });
 
-  // 1 — «سلام. … من کامیار هستم.»
+  // 1 — hello, and his name
   tl.to(cam, { ...at(L.hi), duration: 1.4, ease: 'power3.out' }, 0);
   cue(0, 'whoosh', 0.4);
   up('hi', 0.0, 'thud');
-  breathe('hi', 0.6, 2.4, 1.2);
-  tl.to(cam, { ...at(L.portrait ? L.name : { x: (L.name.x + L.me.x) / 2 - 120, z: L.name.z }, L.dist + (L.portrait ? 0 : 120)), ry: L.portrait ? 0 : -4, duration: 0.6, ease: 'power3.inOut' }, 2.1);
-  fold(['hi'], 2.3);
-  up('name', 2.42, 'thud');
-  up('me', 2.55, 'flip', 0.55);
-  note('hiNote', 2.7);
-  breathe('name', 2.9, 3.3);
+  breathe('hi', 0.6, B.name, 1.2);
+  tl.to(cam, { ...at(L.portrait ? L.name : { x: (L.name.x + L.me.x) / 2 - 120, z: L.name.z }, L.dist + (L.portrait ? 0 : 120)), ry: L.portrait ? 0 : -4, duration: 0.6, ease: 'power3.inOut' }, B.name - 0.32);
+  fold(['hi'], B.name - 0.12);
+  up('name', B.name, 'thud');
+  up('me', B.name + 0.13, 'flip', 0.55);
+  note('hiNote', B.name + 0.28);
+  breathe('name', B.name + 0.48, B.rolesCam + 0.35);
 
-  // 2 — «ادیتور، فرانت‌اند دولوپر و موشن دیزاینر.» — a step back to see all three, each rises on its word
-  tl.to(cam, { ...at(L.roles[1] ?? L.roles[0]!, L.dist * (L.portrait ? 1 : 1.35), 0, L.portrait ? EYE - 260 : EYE), rx: L.portrait ? -6 : -3, ry: 0, duration: 0.55, ease: 'power3.inOut' }, 2.95);
-  cue(2.95, 'whoosh', 0.45);
-  [3.32, 3.78, 4.7].forEach((t, i) => { up(`role${i}`, t, 'thud', 0.42); up(`print${i}`, t + 0.12, 'pop', 0.45); note(`rnote${i}`, t + 0.2); });
-  tl.to(cam, { z: `-=${120}`, duration: 0.9, ease: 'sine.inOut' }, 4.6);
+  // 2 — the three roles: a step back to see all three, each rises on its word
+  tl.to(cam, { ...at(L.roles[1] ?? L.roles[0]!, L.dist * (L.portrait ? 1 : 1.35), 0, L.portrait ? EYE - 260 : EYE), rx: L.portrait ? -6 : -3, ry: 0, duration: 0.55, ease: 'power3.inOut' }, B.rolesCam);
+  cue(B.rolesCam, 'whoosh', 0.45);
+  B.roles.forEach((t, i) => { up(`role${i}`, t, 'thud', 0.42); up(`print${i}`, t + 0.12, 'pop', 0.45); note(`rnote${i}`, t + 0.2); });
+  tl.to(cam, { z: `-=${120}`, duration: 0.9, ease: 'sine.inOut' }, B.roles[2] - 0.1);
 
-  // 3 — «این پورتفولیوی منه و اینجا به اطلاعاتی که درباره‌ی من نیاز داری…» — his work stands up, print by print
-  tl.to(cam, { ...at(L.portfolio, L.dist * (L.portrait ? 1.05 : 1.25), L.portrait ? 0 : -260), rx: -4, ry: 0, duration: 0.8, ease: 'power3.inOut' }, 5.4);
-  cue(5.4, 'whoosh', 0.45);
-  up('portfolio', 6.0, 'thud', 0.45);
-  note('portfolioNote', 6.3);
-  [6.56, 7.02, 7.5, 8.36].forEach((t, i) => up(`work${i}`, t, 'flip', 0.5));
-  tl.to(cam, { x: L.portrait ? 0 : 260, z: L.portfolio.z + L.dist * (L.portrait ? 1.05 : 1.25) - 220, duration: 4.4, ease: 'sine.inOut' }, 6.2);
-  breathe('portfolio', 6.6, 10.4);
+  // 3 — his portfolio: his work stands up, print by print
+  tl.to(cam, { ...at(L.portfolio, L.dist * (L.portrait ? 1.05 : 1.25), L.portrait ? 0 : -260), rx: -4, ry: 0, duration: 0.8, ease: 'power3.inOut' }, B.portCam);
+  cue(B.portCam, 'whoosh', 0.45);
+  up('portfolio', B.portfolio, 'thud', 0.45);
+  note('portfolioNote', B.portfolio + 0.3);
+  B.works.forEach((t, i) => up(`work${i}`, t, 'flip', 0.5));
+  tl.to(cam, { x: L.portrait ? 0 : 260, z: L.portfolio.z + L.dist * (L.portrait ? 1.05 : 1.25) - 220, duration: B.matCam - B.portfolio - 0.1, ease: 'sine.inOut' }, B.portfolio + 0.2);
+  breathe('portfolio', B.portfolio + 0.6, B.matCam - 0.1);
 
-  // 4 — «حالا راحت می‌تونی وارد وب‌سایت بشی. امیدوارم که ازش خوشت بیاد.» — the doormat, then a heart on it
-  tl.to(cam, { ...at(L.mat, L.dist * 0.82, 0, EYE - 520), rx: -30, ry: 0, duration: 0.9, ease: 'power3.inOut' }, 10.5);
-  cue(10.5, 'whoosh', 0.45);
-  tl.set(q('.li-mat'), { autoAlpha: 0, scaleY: 0 }, 0).set(q('.li-mat'), { autoAlpha: 1 }, 11.2)
-    .to(q('.li-mat'), { scaleY: 1, duration: 0.6, ease: stepped('power2.out', 7) }, 11.2);
-  cue(11.2, 'rustle');
-  up('heart', 13.3, 'pop', 0.4);
-  note('matNote', 12.0);
-  tl.to(cam, { z: L.mat.z + L.dist * 0.82 - 120, duration: 2.6, ease: 'sine.inOut' }, 11.4);
+  // 4 — the doormat, then a heart on it
+  tl.to(cam, { ...at(L.mat, L.dist * 0.82, 0, EYE - 520), rx: -30, ry: 0, duration: 0.9, ease: 'power3.inOut' }, B.matCam);
+  cue(B.matCam, 'whoosh', 0.45);
+  tl.set(q('.li-mat'), { autoAlpha: 0, scaleY: 0 }, 0).set(q('.li-mat'), { autoAlpha: 1 }, B.mat)
+    .to(q('.li-mat'), { scaleY: 1, duration: 0.6, ease: stepped('power2.out', 7) }, B.mat);
+  cue(B.mat, 'rustle');
+  up('heart', B.heart, 'pop', 0.4);
+  note('matNote', B.matNote);
+  tl.to(cam, { z: L.mat.z + L.dist * 0.82 - 120, duration: Math.max(0.6, B.whip - B.mat - 0.35), ease: 'sine.inOut' }, B.mat + 0.2);
 
-  // 5 — «آه، راستی! یه چیز دیگه. این یه تایم‌لاین زنده‌ست. برای همین می‌تونی یکم باهاش بازی کنی.»
-  // the "oh, wait" is a whip: the camera swings round, overshoots, and comes back onto the board
+  // 5 — "by the way": a whip, the camera swings round, overshoots and comes back onto the board; it is live, and you can play with it
   const boardBack = L.portrait ? 1 : 1.25;
-  tl.to(cam, { ...at(L.board, L.dist * boardBack, 0, EYE - 40), rx: -4, duration: 0.75, ease: 'power3.inOut' }, 14.15)
-    .to(cam, { keyframes: { ry: [0, -16, 9, -3, 0], easeEach: 'sine.inOut' }, duration: 0.95, ease: 'none' }, 14.15);
-  cue(14.15, 'whoosh', 0.8);
-  cue(14.2, 'glitch', 0.35);
-  up('board', 15.6, 'thud', 0.5);
-  note('liveNote', 15.9);
-  up('live', 16.3, 'thud', 0.5);
-  up('rec', 16.55, 'pop', 0.3);
-  tl.fromTo(q('.li-rec'), { opacity: 1 }, { opacity: 0.15, duration: 0.3, ease: 'steps(1)', repeat: 3, yoyo: true, immediateRender: false }, 16.9);
+  tl.to(cam, { ...at(L.board, L.dist * boardBack, 0, EYE - 40), rx: -4, duration: 0.75, ease: 'power3.inOut' }, B.whip)
+    .to(cam, { keyframes: { ry: [0, -16, 9, -3, 0], easeEach: 'sine.inOut' }, duration: 0.95, ease: 'none' }, B.whip);
+  cue(B.whip, 'whoosh', 0.8);
+  cue(B.whip + 0.05, 'glitch', 0.35);
+  up('board', B.board, 'thud', 0.5);
+  note('liveNote', B.live - 0.4);
+  up('live', B.live, 'thud', 0.5);
+  up('rec', B.live + 0.25, 'pop', 0.3);
+  tl.fromTo(q('.li-rec'), { opacity: 1 }, { opacity: 0.15, duration: 0.3, ease: 'steps(1)', repeat: 3, yoyo: true, immediateRender: false }, B.live + 0.6);
   const board = { sag: 0, head: 0.62, drop: 0 }, redraw = () => drawBoard(board.sag, board.head, board.drop);
-  up('play', 17.4, 'pop', 0.45);
-  tl.to(board, { head: 0.15, duration: 0.55, ease: 'power2.inOut', onUpdate: redraw }, 17.6)
-    .to(board, { head: 0.9, duration: 0.65, ease: 'power2.inOut', onUpdate: redraw }, 18.15)
-    .to(board, { head: 0.5, duration: 0.4, ease: 'power2.inOut', onUpdate: redraw }, 18.8);
-  tl.to(q('.li-deck'), { '--nudge': '-46px', duration: 0.55, ease: 'power2.inOut' }, 17.6)
-    .to(q('.li-deck'), { '--nudge': '46px', duration: 0.65, ease: 'power2.inOut' }, 18.15)
-    .to(q('.li-deck'), { '--nudge': '0px', duration: 0.4, ease: 'power2.inOut' }, 18.8);
-  cue(17.6, 'flip', 0.45); cue(18.15, 'flip', 0.45);
-  tl.to(cam, { z: L.board.z + L.dist * boardBack - 140, duration: 3.4, ease: 'sine.inOut' }, 14.9);
-  breathe('live', 16.9, 18.9, 1.2);
+  up('play', B.play, 'pop', 0.45);
+  B.heads.forEach(([t, head, d], i, list) => {
+    tl.to(board, { head, duration: d, ease: 'power2.inOut', onUpdate: redraw }, t)
+      .to(q('.li-deck'), { '--nudge': `${Math.round((head - 0.5) * 92)}px`, duration: d, ease: 'power2.inOut' }, t);
+    if (i < list.length - 1) cue(t, 'flip', 0.45);
+  });
+  tl.to(cam, { z: L.board.z + L.dist * boardBack - 140, duration: B.come - B.whip - 0.95, ease: 'sine.inOut' }, B.whip + 0.75);
+  breathe('live', B.live + 0.6, B.come - 0.2, 1.2);
 
-  // and in, right after his last word: «بفرما», three dots, and the camera walks into the last one
-  const come: Place & { look: number } = { x: 0, z: 0, look: 0 }, last: Place = { x: 0, z: 0 };
-  const walk = gsap.to(cam, { x: () => come.x + come.look, y: EYE, z: () => come.z + L.dist + 80, rx: -3, ry: -2, duration: 0.9, ease: 'power3.inOut' });
-  tl.add(walk, 19.1);
-  cue(19.1, 'whoosh', 0.5);
-  up('come', 19.65, 'thud', 0.5);
-  L.dots.forEach((_, i) => up(`dot${i}`, 19.9 + i * 0.16, 'pop', 0.25));
-  // the walk in and the dive aim at the word and the last dot of the language being spoken; picking a language on the gate
-  // re-aims them before the tape runs
-  const dive = gsap.to(cam, { x: () => last.x, y: () => (last.y ?? 0) - DOT, z: () => last.z + 24, rx: 0, ry: () => -(last.ry ?? 0), duration: 1.3, ease: 'power3.in' });
-  const aim = (rtl: boolean) => { Object.assign(come, rtl ? L.come : L.comeEn, { look: rtl ? 0 : L.portrait ? 60 : 150 }); Object.assign(last, (rtl ? L.dots : L.dotsEn)[2]); walk.invalidate(); dive.invalidate(); };
-  aim(rtl);
-  tl.add(dive, 20.4);
-  cue(20.4, 'whoosh', 0.8);
-  tl.fromTo(q('.li-red'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, 21.7 - 0.08);
+  // and in, right after his last word: «بفرما» / "Come in", three dots, and the camera walks into the last one
+  const come = rtl ? L.come : L.comeEn, dots = rtl ? L.dots : L.dotsEn, last = dots[2]!;
+  tl.to(cam, { ...at(come, L.dist + 80, rtl ? 0 : L.portrait ? 60 : 150), rx: -3, ry: -2, duration: 0.9, ease: 'power3.inOut' }, B.come);
+  cue(B.come, 'whoosh', 0.5);
+  up('come', B.come + 0.55, 'thud', 0.5);
+  dots.forEach((_, i) => up(`dot${i}`, B.come + 0.8 + i * 0.16, 'pop', 0.25));
+  tl.to(cam, { x: last.x, y: (last.y ?? 0) - DOT, z: last.z + 24, rx: 0, ry: -(last.ry ?? 0), duration: 1.3, ease: 'power3.in' }, B.dive);
+  cue(B.dive, 'whoosh', 0.8);
+  tl.fromTo(q('.li-red'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.08, ease: 'none' }, B.end - 0.08);
 
   cues.sort((x, y) => x.t - y.t);
-  tl.set({}, {}, 21.7);
+  tl.set({}, {}, B.end);
   // run it once through and back, so every piece starts in its first state before the tape moves
   tl.progress(1, true).progress(0, true);
   redraw();
-  return { tl, cues, aim };
+  return { tl, cues };
 }
 
 /** The camera as a transform on the world: the eye stands `perspective` in front of the screen, looking from `cam`. */

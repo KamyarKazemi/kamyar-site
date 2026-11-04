@@ -43,7 +43,8 @@ ok('404 button returns home', (await state()).path === '/en');
 await p.goto(`${base}/#work`, { waitUntil: 'networkidle' });
 await p.waitForTimeout(800);
 await p.click('.case-link');
-await p.waitForTimeout(1200);
+// the page turns under a torn sheet; the next press waits until it has gone
+await p.waitForTimeout(1800);
 s = await state();
 ok(`the work section opens the case study (${s.path}, ${s.h1})`, s.path === '/work/atarinaji' && s.h1 === 'عطاری ناجی' && s.lang === 'fa');
 ok('the case study has its own title', (await p.title()).startsWith('عطاری ناجی'));
@@ -54,7 +55,7 @@ await p.waitForTimeout(1500);
 s = await state();
 ok(`the switch stays on the case study (${s.path}, ${s.h1})`, s.path === '/en/work/atarinaji' && s.h1 === 'Atarinaji' && s.lang === 'en');
 await p.click('.cs-top__back');
-await p.waitForTimeout(1200);
+await p.waitForTimeout(1800);
 s = await state();
 const at = await p.evaluate(() => Math.round(document.getElementById('work').getBoundingClientRect().top));
 ok(`back goes to the English work section, scrolled to it (${s.path}${s.hash}, ${at}px from the top)`, s.path === '/en' && s.hash === '#work' && at > -40 && at < 200);

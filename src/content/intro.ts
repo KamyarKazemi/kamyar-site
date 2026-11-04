@@ -48,7 +48,7 @@ export const intro: Record<Lang, IntroCopy> = {
     scrub: 'بکشش عقب و جلو',
   },
   en: {
-    hi: 'Hi!',
+    hi: 'Hey!',
     name: 'Kamyar',
     hiNote: '01 — سلام، من کامیارم',
     roles: [

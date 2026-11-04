@@ -1,11 +1,11 @@
 import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, type To } from 'react-router-dom';
 import { copy, type Copy, type Lang } from '../content/site';
 import { gsap } from './gsap';
 import { jag, POSE, stepped } from './paper';
 import { sfx } from './sfx';
 
-interface LanguageValue { lang: Lang; t: Copy; toggle: () => void }
+interface LanguageValue { lang: Lang; t: Copy; toggle: () => void; turnTo: (to: To) => void }
 
 const Language = createContext<LanguageValue | null>(null);
 const POSES = 7;
@@ -36,9 +36,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [lang, t]);
 
   // a torn red sheet is pulled across the screen; the address changes while it covers the page, and the sheet carries on off the other side
-  const toggle = useCallback(() => {
-    // the section you are on is read at the moment of the switch: smooth scrolling keeps it in the address without telling the router
-    const go = () => navigate({ pathname: pathIn(lang === 'fa' ? 'en' : 'fa', window.location.pathname), hash: window.location.hash }, { preventScrollReset: true });
+  const sweep = useCallback((go: () => void) => {
     const sheet = turn.current;
     if (!sheet || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { go(); return; }
     if (turning.current) return;
@@ -57,9 +55,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       .to(s, { lead: 106, duration: POSES * POSE, ease: stepped('power2.inOut', POSES), onUpdate: draw })
       .call(go)
       .to(s, { trail: 106, duration: POSES * POSE, ease: stepped('power2.inOut', POSES), onUpdate: draw }, `+=${POSE}`);
-  }, [lang, navigate]);
+  }, []);
+  // the language switch: the same page in the other language. The section you are on is read at the moment of the switch: smooth
+  // scrolling keeps it in the address without telling the router
+  const toggle = useCallback(() => sweep(() => navigate({ pathname: pathIn(lang === 'fa' ? 'en' : 'fa', window.location.pathname), hash: window.location.hash }, { preventScrollReset: true })), [lang, navigate, sweep]);
+  /** Goes to another page of the site under the same torn sheet: into a case study and back out of it. */
+  const turnTo = useCallback((to: To) => sweep(() => navigate(to)), [navigate, sweep]);
 
-  const value = useMemo(() => ({ lang, t, toggle }), [lang, t, toggle]);
+  const value = useMemo(() => ({ lang, t, toggle, turnTo }), [lang, t, toggle, turnTo]);
   return <Language value={value}>{children}<div className="turn" ref={turn} aria-hidden="true" /></Language>;
 }
 
