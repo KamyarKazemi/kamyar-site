@@ -386,6 +386,14 @@ a { color: inherit; transition: color .15s; }
 .case-link__go { padding: 12px 22px; background: var(--red) url('/tex/ink-red.webp') 0 0 / 512px; color: var(--paper); font-weight: 900; border: 2px solid var(--ink); white-space: nowrap; }
 @media (max-width: 720px) { .case-link { grid-template-columns: 1fr; } .case-link__go { justify-self: start; } }
 
+/* read first, at the top of the opening screen: the stop-motion is a choice */
+.fps-note { position: relative; z-index: 3; display: flex; align-items: center; gap: 14px; align-self: center; width: min(760px, calc(100% - 48px)); margin-top: 34px; padding: 12px 14px 12px 18px; background: var(--paper) var(--wall) 0 0 / 1024px; background-blend-mode: multiply; border: 2px solid var(--ink); box-shadow: 6px 7px 0 var(--red); rotate: -.6deg; }
+.fps-note .note { flex: none; padding: 3px 8px; background: var(--red); color: var(--paper); }
+.fps-note p { flex: 1; font-size: clamp(14px, 1.15vw, 16px); font-weight: 700; line-height: 1.7; }
+.fps-note__close { flex: none; min-height: 40px; padding: 0 14px; border: 1px solid var(--ink); font-weight: 800; font-size: 14px; }
+.fps-note__close:hover { background: var(--ink); color: var(--paper); }
+@media (max-width: 760px) { .fps-note { flex-wrap: wrap; margin-top: 26px; gap: 8px 12px; } .fps-note p { flex-basis: 100%; order: 2; } .fps-note__close { order: 3; margin-inline-start: auto; min-height: 44px; } }
+
 /* under the live intro the site is not drawn until the red opens over it */
 .is-covered > :not(.li, .li-wait) { visibility: hidden; }
 

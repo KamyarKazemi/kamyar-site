@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { links, stack } from '../content/site';
 import { Read } from './Read';
 import { useLanguage } from '../lib/language';
@@ -14,11 +15,24 @@ export function SectionHead({ note, title }: { note: string; title: string }) {
   );
 }
 
+const FPS_NOTE = 'kk-fps-note';
+const noteRead = () => { try { return localStorage.getItem(FPS_NOTE) === '1'; } catch { return false; } };
+
 export function Hero() {
   const { t } = useLanguage();
+  // the first thing on the page: the stop-motion is on purpose. Once closed it stays closed
+  const [note, setNote] = useState(() => !noteRead());
+  const close = () => { setNote(false); try { localStorage.setItem(FPS_NOTE, '1'); } catch { /* private window: it shows again next time */ } };
   return (
     <section className="hero" id="top">
       <i className="hero__frame" aria-hidden="true" />
+      {note && (
+        <aside className="fps-note" role="note">
+          <span className="note">{t.fpsNote.note}</span>
+          <p>{t.fpsNote.text}</p>
+          <button type="button" className="fps-note__close" onClick={close}>{t.fpsNote.close}</button>
+        </aside>
+      )}
       <div className="hero__copy">
         <StickerTitle as="h1" size={t.hero.size} className="hero__title">{t.hero.title}</StickerTitle>
       </div>

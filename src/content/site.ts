@@ -26,6 +26,8 @@ export interface Copy {
   /** typed over the name's second line when you point at it away from the top; in the second line's own language */
   toTop: string;
   hero: { title: string; size: string; roles: string; primary: string };
+  /** read first: the choppy, low-frame-rate motion is a choice, not a slow site */
+  fpsNote: { note: string; text: string; close: string };
   /** body paragraphs may mark a key phrase with *asterisks*: the red pen underlines it as you read */
   about: { note: string; title: string; lead: string; body: string[]; stackNote: string; stack: string };
   /** each service: what it is, one plain line of what you get, and what the work actually involves */
@@ -56,7 +58,7 @@ export const links = {
   email: 'kamiyarkazemii@gmail.com',
 };
 
-export const stack = ['React', 'TypeScript', 'Tailwind CSS', 'JavaScript', 'GSAP', 'Git', 'Vite', 'HyperFrames', 'Claude', 'Adobe Creative Cloud'];
+export const stack = ['React', 'TypeScript', 'Tailwind CSS', 'JavaScript', 'GSAP', 'Git', 'Vite', 'WordPress', 'HyperFrames', 'Claude', 'Adobe Creative Cloud'];
 
 const media = {
   intro: { id: 'intro', image: '/work/intro.webp', video: '/work/intro.mp4', ratio: 9 / 16 },
@@ -81,6 +83,7 @@ export const copy: Record<Lang, Copy> = {
     cta: 'پیام بده',
     reach: 'ارتباط با من',
     toTop: '↑ BACK TO TOP',
+    fpsNote: { note: 'NOTE', text: 'لگ داشتن انیمیشن‌ها و ۲۵ فریم بودنشون عمدیه، نه به‌خاطر بهینه نبودن سایت؛ یه تصمیم خلاقانه‌ست.', close: 'فهمیدم' },
     hero: { title: 'کامیار کاظمی', size: 'clamp(60px, 13.4vw, 196px)', roles: 'فرانت‌اند دولوپر، ادیتور و موشن دیزاینر', primary: 'نمونه کارها' },
     about: {
       note: 'ABOUT',
@@ -147,6 +150,7 @@ export const copy: Record<Lang, Copy> = {
     cta: 'Get in touch',
     reach: 'Get in touch',
     toTop: '↑ برگرد بالا',
+    fpsNote: { note: 'NOTE', text: 'The choppy animations at 25 fps are intentional, not a sign of an unoptimized site. It’s a creative decision.', close: 'Got it' },
     hero: { title: 'Kamyar Kazemi', size: 'clamp(44px, 10vw, 150px)', roles: 'Frontend developer, editor and motion designer', primary: 'See the work' },
     about: {
       note: 'ABOUT',
