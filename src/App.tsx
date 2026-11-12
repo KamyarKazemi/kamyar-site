@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header';
 import { About, Contact, Hero, RouteLink, Services, Terms } from './components/Sections';
 import { Work } from './components/Work';
@@ -95,6 +96,7 @@ export function App() {
         <span>{t.fullName}</span>
         <a className="typed" href={links.instagram} target="_blank" rel="noreferrer">{links.handle}</a>
       </footer>
+      <Analytics />
     </div>
   );
 }
