@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Outlet } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { App } from './App';
 import { NotFound } from './components/NotFound';
 import { LanguageProvider } from './lib/language';
@@ -10,7 +11,12 @@ const CaseStudy = lazy(() => import('./components/CaseStudy').then((m) => ({ def
 const Case = () => <Suspense fallback={null}><CaseStudy /></Suspense>;
 
 function Shell() {
-  return <LanguageProvider><Outlet /></LanguageProvider>;
+  return (
+    <LanguageProvider>
+      <Outlet />
+      <Analytics />
+    </LanguageProvider>
+  );
 }
 
 // / is Persian, /en is English; the blog will add /blog and /en/blog here
